@@ -16,7 +16,11 @@ import {
   User,
   LogOut,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Users,
+  CreditCard,
+  Repeat,
+  FileBadge,
 } from 'lucide-react';
 import { useState } from 'react';
 import logo from '/logo.png';
@@ -42,8 +46,33 @@ const Sidebar = ({ isCollapsed, toggleSidebar, isMobile }) => {
         { name: 'Next Month Expire', path: '/next-month', key: 'amc-next-month' }
       ]
     },
+    {name: 'Customers', icon: <Users className="h-5 w-5" />, path: '/customers', key: 'customers'},
+    {name: 'Delivery Challan', icon: <Package className="h-5 w-5" />, path: '/delivery-challan', key: 'delivery-challan'},
+    {name: 'Quotation', icon: <FileText className="h-5 w-5" />, path: '/quotation', key: 'quotation'},
+    {name: 'Orders', icon: <ClipboardList className="h-5 w-5" />, path: '/orders', key: 'orders'},
+    {name: 'Invoice', icon: <FileText className="h-5 w-5" />, path: '/invoice', key: 'invoice'},
+    { name: 'Payment Received', icon: <CreditCard className="h-5 w-5" />, path: '/payment-received', key: 'paymentReceived'},
+    { name: 'Recurring Invoices', icon: <Repeat className="h-5 w-5" />, path: '/recurring-invoices',  key: 'recurringInvoices'},
+    { name: 'Credit Notes', icon: <FileBadge className="h-5 w-5" />, path: '/credit-notes', key: 'creditNotes'},
     { name: 'Sales', icon: <DollarSign className="h-5 w-5" />, path: '/sales', key: 'sales' },
-    { name: 'Routine Services', icon: <Wrench className="h-5 w-5" />, path: '/routine-services', key: 'routine-services' },
+    {
+      name: 'Routine Services',
+      icon: <Wrench className="h-5 w-5" />,
+      path: '/routine-services',
+      key: 'routine-services',
+      subItems: [
+        { name: 'Routine Services', path: '/routine-services', key: 'routine-all' },
+        { name: 'Today Services', path: '/today-services', key: 'routine-today' },
+        { name: 'Route Wise Services', path: '/route-wise-services', key: 'routine-route-wise' },
+        { name: 'This Month Services', path: '/this-month-services', key: 'routine-this-month' },
+        { name: 'Last Month Services', path: '/last-month-services', key: 'routine-last-month' },
+        { name: 'This Month Overdue', path: '/this-month-overdue', key: 'routine-this-month-overdue' },
+        { name: 'Last Month Overdue', path: '/last-month-overdue', key: 'routine-last-month-overdue' },
+        { name: 'Last Month Completed', path: '/last-month-completed', key: 'routine-last-month-completed' },
+        { name: 'This Month Completed', path: '/this-month-completed', key: 'routine-this-month-completed' },
+        { name: 'Pending Assign', path: '/pending-assign', key: 'routine-pending-assign' }
+      ]
+    },    
     { name: 'Complaints', icon: <AlertCircle className="h-5 w-5" />, path: '/complaints', key: 'complaints' },
     { name: 'Monthly Load', icon: <BarChart2 className="h-5 w-5" />, path: '/monthly-load', key: 'monthly-load' },
     { name: 'Services Schedule', icon: <CalendarCheck className="h-5 w-5" />, path: '/services-schedule', key: 'services-schedule' },

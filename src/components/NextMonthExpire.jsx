@@ -19,7 +19,7 @@ const NextMonthExpire = () => {
   return (
     <div className="container mx-auto p-4 bg-gray-50 min-h-screen">
       <div className="flex flex-col md:flex-row justify-between items-center mb-6">
-        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 md:mb-0">Next month expire AMC</h2>
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 md:mb-0">Next month expire</h2>
         <button className="bg-orange-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-orange-600 transition duration-300">
           Export
         </button>
@@ -43,7 +43,7 @@ const NextMonthExpire = () => {
             {mockData.map((item, index) => (
               <tr key={index} className="hover:bg-gray-50 transition duration-300">
                 <td className="py-2 px-4 border-b border-gray-200">{item.amc}</td>
-                <td className="py-2 px-4 border-b border-gray-200 flex items-center space-x-2">
+                <td className="py-2 px-4 border-b border-gray-200 flex items-center space-x-2 h-[150px]">
                   <span className="bg-green-500 text-white px-2 py-1 rounded-full text-xs">A/AL021</span>
                   <span className="text-gray-700">{item.customer}</span>
                 </td>
@@ -55,14 +55,19 @@ const NextMonthExpire = () => {
                 </td>
                 <td className="py-2 px-4 border-b border-gray-200">{item.amcType}</td>
                 <td className="py-2 px-4 border-b border-gray-200">{item.amount}</td>
-                <td className="py-2 px-4 border-b border-gray-200 flex space-x-2">
-                  <button className="text-blue-500 hover:text-blue-700">
-                    <Edit size={16} />
-                  </button>
-                  <button className="bg-orange-500 text-white px-2 py-1 rounded hover:bg-orange-600">
-                    <Plus size={16} />
-                  </button>
-                </td>
+               <td className="py-2 px-4 border-gray-200 flex flex-col items-center space-y-2">
+  <div className="flex space-x-2">
+    <button className="text-blue-500 hover:text-blue-700">
+      <Edit size={16} />
+    </button>
+    <button className="bg-orange-500 text-white px-2 py-1 rounded hover:bg-orange-600">
+      <Plus size={16} />
+    </button>
+  </div>
+  <button className="bg-orange-500 text-white px-3 py-1 rounded hover:bg-orange-600">
+    Renew
+  </button>
+</td>
               </tr>
             ))}
           </tbody>
