@@ -128,7 +128,7 @@ const NewItemForm = ({ onCancel, brandOptions, floorOptions, typeOptions, doorTy
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <h1 className="text-3xl font-bold text-gray-800 mb-8 text-center">New Item</h1>
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl mx-auto">
+      <div className="bg-white rounded-xl  w-full max-w-4xl mx-auto">
         <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-6">
           <h2 className="text-2xl font-bold text-white">Create New Item</h2>
           <p className="text-orange-100">Fill in all required fields (*) to add an item</p>
