@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import NewItemForm from '../components/Forms/NewItemForm';
 
 const Items = () => {
-  const [items] = useState([
+  const [items, setItems] = useState([
     { partNo: 277951, name: 'Inspection Box', type: 'Nos', salePrice: 0, purchasePrice: 0, taxPreference: 'Taxable', tax: 'GST18(18%)' },
     { partNo: 277952, name: 'Inspection Box', type: 'Nos', salePrice: 0, purchasePrice: 0, taxPreference: 'Taxable', tax: 'GST18(18%)' },
     { partNo: 277953, name: 'Inspection Box', type: 'Nos', salePrice: 0, purchasePrice: 0, taxPreference: 'Taxable', tax: 'GST18(18%)' },
@@ -13,6 +14,7 @@ const Items = () => {
     { partNo: 277958, name: 'Inspection Box', type: 'Nos', salePrice: 0, purchasePrice: 0, taxPreference: 'Taxable', tax: 'GST18(18%)' },
   ]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [showModal, setShowModal] = useState(false);
   const itemsPerPage = 7;
 
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -20,23 +22,31 @@ const Items = () => {
   const currentItems = items.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(items.length / itemsPerPage);
 
+  const handleFormSubmit = (newItem) => {
+    setItems((prev) => [...prev, newItem]);
+    setShowModal(false);
+  };
+
+  const handleFormCancel = () => {
+    setShowModal(false);
+  };
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="flex flex-col md:flex-row justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-800 mb-4 md:mb-0">Items</h1>
         <div className="space-x-4">
-          {/* <button className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition duration-200 w-full md:w-auto mb-2 md:mb-0">
-            Bulk Actions
-          </button> */}
-          <button className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition duration-200 w-full md:w-auto">
+          <button
+            onClick={() => setShowModal(true)}
+            className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition duration-200 w-full md:w-auto"
+            aria-label="New Item"
+          >
             New Item
           </button>
         </div>
       </div>
 
-      {/* Items Table */}
       <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-        {/* Desktop Table */}
         <div className="hidden md:block">
           <table className="w-full text-sm">
             <thead>
@@ -64,7 +74,7 @@ const Items = () => {
                   <td className="p-4 text-gray-800">{item.taxPreference}</td>
                   <td className="p-4 text-gray-800">{item.tax}</td>
                   <td className="p-4">
-                    <button className="text-blue-500 hover:text-blue-700">
+                    <button className="text-blue-500 hover:text-blue-700" aria-label="Actions">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                       </svg>
@@ -76,7 +86,6 @@ const Items = () => {
           </table>
         </div>
 
-        {/* Mobile Card Layout */}
         <div className="md:hidden">
           {currentItems.map((item) => (
             <div key={item.partNo} className="border-b p-4">
@@ -89,7 +98,7 @@ const Items = () => {
               <div className="text-gray-800">Tax Preference: {item.taxPreference}</div>
               <div className="text-gray-800">Tax: {item.tax}</div>
               <div className="p-2">
-                <button className="text-blue-500 hover:text-blue-700">
+                <button className="text-blue-500 hover:text-blue-700" aria-label="Actions">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                   </svg>
@@ -100,25 +109,44 @@ const Items = () => {
         </div>
 
         <div className="p-4 text-gray-600 flex flex-col md:flex-row justify-between items-center">
-          {/* <span>Showing {indexOfFirstItem + 1}-{indexOfLastItem > items.length ? items.length : indexOfLastItem} of {items.length}</span> */}
+          <span>
+            Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, items.length)} of {items.length}
+          </span>
           <div className="space-x-2 mt-2 md:mt-0">
             <button
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
               className="px-3 py-1 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 transition duration-200"
+              aria-label="Previous Page"
             >
-              
+              Previous
             </button>
             <button
               onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}
               className="px-3 py-1 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 transition duration-200"
+              aria-label="Next Page"
             >
-              
+              Next
             </button>
           </div>
         </div>
       </div>
+
+      {showModal && (
+  <div
+    className="fixed inset-0  bg-opacity-50 flex items-center justify-center z-50"
+    onClick={() => setShowModal(false)}
+    aria-label="Close modal"
+  >
+    <div
+      className=" rounded-lg bg-gray-50 shadow-lg p-4 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <NewItemForm onSubmit={handleFormSubmit} onCancel={handleFormCancel} items={items} />
+    </div>
+  </div>
+)}
     </div>
   );
 };

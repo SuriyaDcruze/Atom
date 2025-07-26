@@ -26,6 +26,7 @@ import LastMonthOverdue from './components/LastMonthOverdue';
 import ThisMonthCompleted from './components/ThisMonthCompleted';
 import LastMonthCompleted from './components/LastMonthCompleted';
 import PendingAssignServices from './components/PendingAssignServices';
+import NewItemForm from './components/Forms/NewItemForm';
 
 function App() {
   return (
