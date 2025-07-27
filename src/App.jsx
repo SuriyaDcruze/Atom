@@ -28,6 +28,12 @@ import LastMonthCompleted from './components/LastMonthCompleted';
 import PendingAssignServices from './components/PendingAssignServices';
 import NewItemForm from './components/Forms/NewItemForm';
 
+
+
+// authentication
+import Login from './components/Authentication/Login';
+import Signup from './components/Authentication/Signup';
+
 function App() {
   return (
     <Router>
@@ -62,6 +68,10 @@ function App() {
           <Route path="/pending-assign" element={<PendingAssignServices />} />
         </Route>
         
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+
+
         {/* Add non-dashboard routes without the layout */}
         {/* <Route path="/login" element={<LoginPage />} /> */}
       </Routes>
