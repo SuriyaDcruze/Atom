@@ -1,36 +1,35 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import DashboardLayout from './components/DashboardLayout';
-import DashboardPage from './components/Dashboard';
-import LiftsPage from './components/Lifts';
-import Items from './components/Items';
-import CustomerLicense from './components/CustomerLicense';
-import AMC from './components/AMC';
-import ThisMonthExpire from './components/ThisMonthExpire';
-import NextMonthExpire from './components/NextMonthExpire';
-import LastMonthExpire from './components/LastMonthExpire';
-import Customers from './components/Customers';
-import DeliveryChallan from './components/DeliveryChallan';
-import QuotationTable from './components/QuotationTable';
-import Orders from './components/Orders';
-import Invoice from './components/Invoice';
-import PaymentRecieved from './components/PaymentRecieved';
-import RecurringInvoices from './components/RecurringInvoices';
-import CreditNotes from './components/CreditNotes';
-import RoutineServices from './components/RoutineServices';
-import TodayServices from './components/TodayServices';
-import RouteWiseServices from './components/RouteWiseServices';
-import ThisMonthServices from './components/ThisMonthServices';
-import LastMonthServices from './components/LastMonthServices';
-import ThisMonthOverdue from './components/ThisMonthOverdue';
-import LastMonthOverdue from './components/LastMonthOverdue';
-import ThisMonthCompleted from './components/ThisMonthCompleted';
-import LastMonthCompleted from './components/LastMonthCompleted';
-import PendingAssignServices from './components/PendingAssignServices';
-import NewItemForm from './components/Forms/NewItemForm';
+import DashboardLayout from './components/Dashboard/DashboardLayout';
+import DashboardPage from './components/Dashboard/Dashboard';
+import LiftsPage from './components/Dashboard/Lifts';
+import Items from './components/Dashboard/Items';
+import CustomerLicense from './components/Dashboard/CustomerLicense';
+import AMC from './components/Dashboard/AMC';
+import ThisMonthExpire from './components/Dashboard/ThisMonthExpire';
+import NextMonthExpire from './components/Dashboard/NextMonthExpire';
+import LastMonthExpire from './components/Dashboard/LastMonthExpire';
+import Customers from './components/Dashboard/Customers';
+import DeliveryChallan from './components/Dashboard/DeliveryChallan';
+import QuotationTable from './components/Dashboard/QuotationTable';
+import Orders from './components/Dashboard/Orders';
+import Invoice from './components/Dashboard/Invoice';
+import PaymentRecieved from './components/Dashboard/PaymentRecieved';
+import RecurringInvoices from './components/Dashboard/RecurringInvoices';
+import CreditNotes from './components/Dashboard/CreditNotes';
+import RoutineServices from './components/Dashboard/RoutineServices';
+import TodayServices from './components/Dashboard/TodayServices';
+import RouteWiseServices from './components/Dashboard/RouteWiseServices';
+import ThisMonthServices from './components/Dashboard/ThisMonthServices';
+import LastMonthServices from './components/Dashboard/LastMonthServices';
+import ThisMonthOverdue from './components/Dashboard/ThisMonthOverdue';
+import LastMonthOverdue from './components/Dashboard/LastMonthOverdue';
+import ThisMonthCompleted from './components/Dashboard/ThisMonthCompleted';
+import LastMonthCompleted from './components/Dashboard/LastMonthCompleted';
+import PendingAssignServices from './components/Dashboard/PendingAssignServices';
+import NewItemForm from './components/Dashboard/Forms/NewItemForm';
+import Home from './components/Homepage/Home'; // Assuming Home component exists
 
-
-
-// authentication
+// Authentication
 import Login from './components/Authentication/Login';
 import Signup from './components/Authentication/Signup';
 
@@ -38,42 +37,42 @@ function App() {
   return (
     <Router>
       <Routes>
+        {/* Home route */}
+        <Route path="/" element={<Home />} />
+
         {/* Wrap dashboard routes with the layout */}
         <Route element={<DashboardLayout />}>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/lifts" element={<LiftsPage />} />
-          <Route path="/items" element={<Items />} />
-          <Route path="/customer-license" element={<CustomerLicense />} />
-          <Route path="/amc" element={<AMC />} />
-          <Route path="/this-month" element={<ThisMonthExpire />} />
-          <Route path="/next-month" element={<NextMonthExpire />} />
-          <Route path="/last-month" element={<LastMonthExpire />} />
-          <Route path="/customers" element={<Customers />} />
-          <Route path="/delivery-challan" element={<DeliveryChallan />} />
-          <Route path="/quotation" element={<QuotationTable />} />
-          <Route path="/orders" element={<Orders />} />
-          <Route path="/invoice" element={<Invoice />} />
-          <Route path="/payment-received" element={<PaymentRecieved />} />
-          <Route path="/recurring-invoices" element={<RecurringInvoices />} />
-          <Route path="/credit-notes" element={<RecurringInvoices />} />
-          <Route path="/routine-services" element={<RoutineServices />} />
-          <Route path="/today-services" element={<TodayServices />} />
-          <Route path="/route-wise-services" element={<RouteWiseServices />} />
-          <Route path="/this-month-services" element={<ThisMonthServices />} />
-          <Route path="/last-month-services" element={<LastMonthServices />} />
-          <Route path="/this-month-overdue" element={<ThisMonthOverdue />} />
-          <Route path="/last-month-overdue" element={<LastMonthOverdue />} />
-          <Route path="/this-month-completed" element={<ThisMonthCompleted />} />
-          <Route path="/last-month-completed" element={<LastMonthCompleted />} />
-          <Route path="/pending-assign" element={<PendingAssignServices />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/dashboard/lifts" element={<LiftsPage />} />
+          <Route path="/dashboard/items" element={<Items />} />
+          <Route path="/dashboard/customer-license" element={<CustomerLicense />} />
+          <Route path="/dashboard/amc" element={<AMC />} />
+          <Route path="/dashboard/this-month" element={<ThisMonthExpire />} />
+          <Route path="/dashboard/next-month" element={<NextMonthExpire />} />
+          <Route path="/dashboard/last-month" element={<LastMonthExpire />} />
+          <Route path="/dashboard/customers" element={<Customers />} />
+          <Route path="/dashboard/delivery-challan" element={<DeliveryChallan />} />
+          <Route path="/dashboard/quotation" element={<QuotationTable />} />
+          <Route path="/dashboard/orders" element={<Orders />} />
+          <Route path="/dashboard/invoice" element={<Invoice />} />
+          <Route path="/dashboard/payment-received" element={<PaymentRecieved />} />
+          <Route path="/dashboard/recurring-invoices" element={<RecurringInvoices />} />
+          <Route path="/dashboard/credit-notes" element={<CreditNotes />} />
+          <Route path="/dashboard/routine-services" element={<RoutineServices />} />
+          <Route path="/dashboard/today-services" element={<TodayServices />} />
+          <Route path="/dashboard/route-wise-services" element={<RouteWiseServices />} />
+          <Route path="/dashboard/this-month-services" element={<ThisMonthServices />} />
+          <Route path="/dashboard/last-month-services" element={<LastMonthServices />} />
+          <Route path="/dashboard/this-month-overdue" element={<ThisMonthOverdue />} />
+          <Route path="/dashboard/last-month-overdue" element={<LastMonthOverdue />} />
+          <Route path="/dashboard/this-month-completed" element={<ThisMonthCompleted />} />
+          <Route path="/dashboard/last-month-completed" element={<LastMonthCompleted />} />
+          <Route path="/dashboard/pending-assign" element={<PendingAssignServices />} />
         </Route>
-        
+
+        {/* Authentication routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-
-
-        {/* Add non-dashboard routes without the layout */}
-        {/* <Route path="/login" element={<LoginPage />} /> */}
       </Routes>
     </Router>
   );

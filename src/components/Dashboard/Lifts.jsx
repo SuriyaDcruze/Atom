@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import LiftForm from '../components/Forms/LiftForm';
+import LiftForm from '../Dashboard/Forms/LiftForm';
 import { Edit,Pencil, Trash2,RefreshCw,Search } from 'lucide-react';
 
 const apiBaseUrl = import.meta.env.VITE_BASE_API;

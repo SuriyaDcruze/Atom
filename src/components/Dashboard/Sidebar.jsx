@@ -21,71 +21,87 @@ import {
   CreditCard,
   Repeat,
   FileBadge,
+  ShoppingCart,
 } from 'lucide-react';
 import { useState } from 'react';
 import logo from '/logo.png';
 
 const Sidebar = ({ isCollapsed, toggleSidebar, isMobile }) => {
   const location = useLocation();
-  const [amcExpanded, setAmcExpanded] = useState(false);
-  
+  const [expandedMenus, setExpandedMenus] = useState({
+    amc: false,
+    sales: false,
+    routineServices: false,
+  });
+
   const menuItems = [
-    { name: 'Dashboard', icon: <Home className="h-5 w-5" />, path: '/', key: 'dashboard' },
-    { name: 'Lifts', icon: <Settings className="h-5 w-5" />, path: '/lifts', key: 'lifts' },
-    { name: 'Items', icon: <Package className="h-5 w-5" />, path: '/items', key: 'items' },
-    { name: 'Customer License', icon: <FileText className="h-5 w-5" />, path: '/customer-license', key: 'customer-license' },
+    { name: 'Dashboard', icon: <Home className="h-5 w-5" />, path: '/dashboard', key: 'dashboard' },
+    { name: 'Lifts', icon: <Settings className="h-5 w-5" />, path: '/dashboard/lifts', key: 'lifts' },
+    { name: 'Items', icon: <Package className="h-5 w-5" />, path: '/dashboard/items', key: 'items' },
+    { name: 'Customer License', icon: <FileText className="h-5 w-5" />, path: '/dashboard/customer-license', key: 'customer-license' },
     { 
       name: 'AMC', 
       icon: <Calendar className="h-5 w-5" />, 
       path: '/amc', 
       key: 'amc',
       subItems: [
-        { name: 'AMC', path: '/amc', key: 'amc-all' },
-        { name: 'This Month Expire', path: '/this-month', key: 'amc-this-month' },
-        { name: 'Last Month Expire', path: '/last-month', key: 'amc-last-month' },
-        { name: 'Next Month Expire', path: '/next-month', key: 'amc-next-month' }
-      ]
+        { name: 'AMC', path: '/dashboard/amc', key: 'amc-all' },
+        { name: 'This Month Expire', path: '/dashboard/this-month', key: 'amc-this-month' },
+        { name: 'Last Month Expire', path: '/dashboard/last-month', key: 'amc-last-month' },
+        { name: 'Next Month Expire', path: '/dashboard/next-month', key: 'amc-next-month' },
+      ],
     },
-    {name: 'Customers', icon: <Users className="h-5 w-5" />, path: '/customers', key: 'customers'},
-    {name: 'Delivery Challan', icon: <Package className="h-5 w-5" />, path: '/delivery-challan', key: 'delivery-challan'},
-    {name: 'Quotation', icon: <FileText className="h-5 w-5" />, path: '/quotation', key: 'quotation'},
-    {name: 'Orders', icon: <ClipboardList className="h-5 w-5" />, path: '/orders', key: 'orders'},
-    {name: 'Invoice', icon: <FileText className="h-5 w-5" />, path: '/invoice', key: 'invoice'},
-    { name: 'Payment Received', icon: <CreditCard className="h-5 w-5" />, path: '/payment-received', key: 'paymentReceived'},
-    { name: 'Recurring Invoices', icon: <Repeat className="h-5 w-5" />, path: '/recurring-invoices',  key: 'recurringInvoices'},
-    { name: 'Credit Notes', icon: <FileBadge className="h-5 w-5" />, path: '/credit-notes', key: 'creditNotes'},
-    { name: 'Sales', icon: <DollarSign className="h-5 w-5" />, path: '/sales', key: 'sales' },
+    {
+      name: 'Sales',
+      icon: <ShoppingCart className="h-5 w-5" />,
+      key: 'sales',
+      subItems: [
+        { name: 'Customers', icon: <Users className="h-5 w-5" />, path: '/dashboard/customers', key: 'customers' },
+        { name: 'Delivery Challan', icon: <Package className="h-5 w-5" />, path: '/dashboard/delivery-challan', key: 'delivery-challan' },
+        { name: 'Quotation', icon: <FileText className="h-5 w-5" />, path: '/dashboard/quotation', key: 'quotation' },
+        { name: 'Orders', icon: <ClipboardList className="h-5 w-5" />, path: '/dashboard/orders', key: 'orders' },
+        { name: 'Invoice', icon: <FileText className="h-5 w-5" />, path: '/dashboard/invoice', key: 'invoice' },
+        { name: 'Payment Received', icon: <CreditCard className="h-5 w-5" />, path: '/dashboard/payment-received', key: 'paymentReceived' },
+        { name: 'Recurring Invoices', icon: <Repeat className="h-5 w-5" />, path: '/dashboard/recurring-invoices', key: 'recurringInvoices' },
+        { name: 'Credit Notes', icon: <FileBadge className="h-5 w-5" />, path: '/dashboard/credit-notes', key: 'creditNotes' },
+      ],
+    },
     {
       name: 'Routine Services',
       icon: <Wrench className="h-5 w-5" />,
       path: '/routine-services',
       key: 'routine-services',
       subItems: [
-        { name: 'Routine Services', path: '/routine-services', key: 'routine-all' },
-        { name: 'Today Services', path: '/today-services', key: 'routine-today' },
-        { name: 'Route Wise Services', path: '/route-wise-services', key: 'routine-route-wise' },
-        { name: 'This Month Services', path: '/this-month-services', key: 'routine-this-month' },
-        { name: 'Last Month Services', path: '/last-month-services', key: 'routine-last-month' },
-        { name: 'This Month Overdue', path: '/this-month-overdue', key: 'routine-this-month-overdue' },
-        { name: 'Last Month Overdue', path: '/last-month-overdue', key: 'routine-last-month-overdue' },
-        { name: 'Last Month Completed', path: '/last-month-completed', key: 'routine-last-month-completed' },
-        { name: 'This Month Completed', path: '/this-month-completed', key: 'routine-this-month-completed' },
-        { name: 'Pending Assign', path: '/pending-assign', key: 'routine-pending-assign' }
-      ]
+        { name: 'Routine Services', path: '/dashboard/routine-services', key: 'routine-all' },
+        { name: 'Today Services', path: '/dashboard/today-services', key: 'routine-today' },
+        { name: 'Route Wise Services', path: '/dashboard/route-wise-services', key: 'routine-route-wise' },
+        { name: 'This Month Services', path: '/dashboard/this-month-services', key: 'routine-this-month' },
+        { name: 'Last Month Services', path: '/dashboard/last-month-services', key: 'routine-last-month' },
+        { name: 'This Month Overdue', path: '/dashboard/this-month-overdue', key: 'routine-this-month-overdue' },
+        { name: 'Last Month Overdue', path: '/dashboard/last-month-overdue', key: 'routine-last-month-overdue' },
+        { name: 'Last Month Completed', path: '/dashboard/last-month-completed', key: 'routine-last-month-completed' },
+        { name: 'This Month Completed', path: '/dashboard/this-month-completed', key: 'routine-this-month-completed' },
+        { name: 'Pending Assign', path: '/dashboard/pending-assign', key: 'routine-pending-assign' },
+      ],
     },    
-    { name: 'Complaints', icon: <AlertCircle className="h-5 w-5" />, path: '/complaints', key: 'complaints' },
-    { name: 'Monthly Load', icon: <BarChart2 className="h-5 w-5" />, path: '/monthly-load', key: 'monthly-load' },
-    { name: 'Services Schedule', icon: <CalendarCheck className="h-5 w-5" />, path: '/services-schedule', key: 'services-schedule' },
-    { name: 'Material Request', icon: <ClipboardList className="h-5 w-5" />, path: '/material-request', key: 'material-request' },
-    { name: 'Inventory', icon: <Warehouse className="h-5 w-5" />, path: '/inventory', key: 'inventory' },
-    { name: 'Reports', icon: <FileBarChart2 className="h-5 w-5" />, path: '/reports', key: 'reports' }
+    { name: 'Complaints', icon: <AlertCircle className="h-5 w-5" />, path: '/dashboard/complaints', key: 'complaints' },
+    { name: 'Monthly Load', icon: <BarChart2 className="h-5 w-5" />, path: '/dashboard/monthly-load', key: 'monthly-load' },
+    { name: 'Services Schedule', icon: <CalendarCheck className="h-5 w-5" />, path: '/dashboard/services-schedule', key: 'services-schedule' },
+    { name: 'Material Request', icon: <ClipboardList className="h-5 w-5" />, path: '/dashboard/material-request', key: 'material-request' },
+    { name: 'Inventory', icon: <Warehouse className="h-5 w-5" />, path: '/dashboard/inventory', key: 'inventory' },
+    { name: 'Reports', icon: <FileBarChart2 className="h-5 w-5" />, path: '/dashboard/reports', key: 'reports' },
   ];
 
-  const toggleAmcExpand = () => {
-    setAmcExpanded(!amcExpanded);
+  const toggleMenuExpand = (key) => {
+    setExpandedMenus((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const isAmcActive = location.pathname.startsWith('/amc');
+  const isMenuActive = (item) => {
+    if (item.subItems) {
+      return item.subItems.some((subItem) => location.pathname === subItem.path);
+    }
+    return location.pathname === item.path;
+  };
 
   return (
     <div className={`
@@ -113,16 +129,16 @@ const Sidebar = ({ isCollapsed, toggleSidebar, isMobile }) => {
               {item.subItems ? (
                 <>
                   <div
-                    onClick={toggleAmcExpand}
+                    onClick={() => toggleMenuExpand(item.key)}
                     className={`
                       flex items-center p-3 mx-2 rounded-md cursor-pointer
                       hover:bg-orange-600 transition-colors duration-200
                       ${isCollapsed ? 'justify-center' : 'px-4 justify-between'}
-                      ${isAmcActive ? 'bg-orange-500 text-white' : ''}
+                      ${isMenuActive(item) ? 'bg-orange-500 text-white' : ''}
                     `}
                   >
                     <div className="flex items-center">
-                      <span className={`${isCollapsed ? '' : 'mr-3'} ${isAmcActive ? 'text-white' : 'text-gray-600'}`}>
+                      <span className={`${isCollapsed ? '' : 'mr-3'} ${isMenuActive(item) ? 'text-white' : 'text-gray-600'}`}>
                         {item.icon}
                       </span>
                       {!isCollapsed && (
@@ -132,11 +148,11 @@ const Sidebar = ({ isCollapsed, toggleSidebar, isMobile }) => {
                       )}
                     </div>
                     {!isCollapsed && (
-                      amcExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                      expandedMenus[item.key] ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
                     )}
                   </div>
                   
-                  {(!isCollapsed && amcExpanded) && (
+                  {(!isCollapsed && expandedMenus[item.key]) && (
                     <ul className="ml-8 mt-1 space-y-1">
                       {item.subItems.map((subItem) => (
                         <li key={subItem.key}>
@@ -149,6 +165,9 @@ const Sidebar = ({ isCollapsed, toggleSidebar, isMobile }) => {
                               ${location.pathname === subItem.path ? 'bg-orange-500 text-white' : ''}
                             `}
                           >
+                            <span className={`mr-3 ${location.pathname === subItem.path ? 'text-white' : 'text-gray-600'}`}>
+                              {item.key === 'sales' ? subItem.icon : item.icon}
+                            </span>
                             <span className="whitespace-nowrap text-sm font-medium">
                               {subItem.name}
                             </span>
@@ -199,7 +218,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar, isMobile }) => {
           {!isCollapsed && <span className="text-sm font-medium">Profile</span>}
         </Link>
         <Link
-          to="/logout"
+          to="/login"
           onClick={() => isMobile && toggleSidebar()}
           className={`
             flex items-center p-3 mx-2 rounded-md hover:bg-orange-600

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import NewItemForm from '../components/Forms/NewItemForm';
+import NewItemForm from '../Dashboard/Forms/NewItemForm';
 
 const Items = () => {
   const [items, setItems] = useState([
@@ -140,7 +140,7 @@ const Items = () => {
     aria-label="Close modal"
   >
     <div
-      className=" rounded-lg bg-gray-50 shadow-lg p-4 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto"
+      className=" rounded-lg bg-gray-50 shadow-lg  max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto"
       onClick={(e) => e.stopPropagation()}
     >
       <NewItemForm onSubmit={handleFormSubmit} onCancel={handleFormCancel} items={items} />

@@ -203,7 +203,7 @@ const SignupPage = () => {
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
                 Already have an account?{' '}
-                <a href="#" className="font-medium text-orange-600 hover:text-orange-500">
+                <a href="/login" className="font-medium text-orange-600 hover:text-orange-500">
                   Sign in
                 </a>
               </p>
