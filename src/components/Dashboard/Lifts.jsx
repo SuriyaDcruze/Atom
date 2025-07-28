@@ -749,7 +749,6 @@ const Lifts = () => {
       </div>
 
       {/* Lift Form Modal */}
-     // In your Lifts component, modify the LiftForm rendering part:
 {(isCreateModalOpen || isEditModalOpen) && (
   <LiftForm
     isEdit={isEditModalOpen}
