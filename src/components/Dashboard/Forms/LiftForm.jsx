@@ -68,49 +68,51 @@ const LiftForm = ({
 
   // Handle adding new dropdown option
   const handleAddOption = async (field) => {
-    const value = modalState[field].value.trim();
-    if (!value) {
-      toast.error(`Please enter a ${field.replace(/([A-Z])/g, ' $1').toLowerCase().trim()}.`);
-      return;
-    }
+  const value = modalState[field].value.trim();
+  if (!value) {
+    toast.error(`Please enter a ${field.replace(/([A-Z])/g, ' $1').toLowerCase().trim()}.`);
+    return;
+  }
 
-    try {
-      const apiEndpoints = {
-        brand: 'add-brand/',
-        floorID: 'add-floor-id/',
-        machineType: 'add-machine-type/',
-        liftType: 'add-lift-type/',
-        doorType: 'add-door-type/',
-        machineBrand: 'add-machine-brand/',
-        doorBrand: 'add-door-brand/',
-        controllerBrand: 'add-controller-brand/',
-        cabin: 'add-cabin/',
-      };
+  try {
+    const apiEndpoints = {
+      brand: 'add-brand/',
+      floorID: 'add-floor-id/',
+      machineType: 'add-machine-type/',
+      liftType: 'add-lift-type/',
+      doorType: 'add-door-type/',
+      machineBrand: 'add-machine-brand/',
+      doorBrand: 'add-door-brand/',
+      controllerBrand: 'add-controller-brand/',
+      cabin: 'add-cabin/',
+    };
 
-      await axios.post(
-        `${apiBaseUrl}/${apiEndpoints[field]}`,
-        { value },
-        { withCredentials: true }
-      );
+    await axios.post(
+      `${apiBaseUrl}/auth/${apiEndpoints[field]}`,
+      { value },
+      { withCredentials: true }
+    );
 
-      // Update the dropdown options in parent component
-      const setterName = `set${field.charAt(0).toUpperCase() + field.slice(1)}Options`;
-      if (dropdownOptions[setterName]) {
-        dropdownOptions[setterName]((prev) => [...prev, value]);
-      }
+    // Update the form state with the new value
+    setNewLift(prev => ({ ...prev, [field]: value }));
 
-      // Update the current form field with the new value
-      setNewLift((prev) => ({ ...prev, [field]: value }));
-      closeAddModal(field);
-      toast.success(`${field.replace(/([A-Z])/g, ' $1').trim()} added successfully.`);
-    } catch (error) {
-      console.error(`Error adding ${field}:`, error.response?.data || error);
-      toast.error(
-        error.response?.data?.error || 
-        `Failed to add ${field.replace(/([A-Z])/g, ' $1').toLowerCase().trim()}.`
-      );
-    }
-  };
+    // Close the modal
+    closeAddModal(field);
+
+    // Show success message
+    toast.success(`${field.replace(/([A-Z])/g, ' $1').trim()} added successfully.`);
+
+    // Trigger parent component to refresh options
+    onSubmitSuccess(); // This should trigger the parent to refetch all dropdown options
+
+  } catch (error) {
+    console.error(`Error adding ${field}:`, error.response?.data || error);
+    toast.error(
+      error.response?.data?.error || 
+      `Failed to add ${field.replace(/([A-Z])/g, ' $1').toLowerCase().trim()}.`
+    );
+  }
+};
 
   // Handle form submission
   const handleSubmit = async () => {
@@ -169,14 +171,14 @@ const LiftForm = ({
       // Make API call based on edit or create mode
       if (isEdit) {
         await axios.put(
-          `${apiBaseUrl}/edit_lift/${initialData.id}/`, 
+          `${apiBaseUrl}/auth/edit_lift/${initialData.id}/`, 
           liftData, 
           { withCredentials: true }
         );
         toast.success('Lift updated successfully.');
       } else {
         await axios.post(
-          `${apiBaseUrl}/add_lift/`, 
+          `${apiBaseUrl}/auth/add_lift/`, 
           liftData, 
           { withCredentials: true }
         );

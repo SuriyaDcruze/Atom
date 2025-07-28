@@ -103,6 +103,29 @@ const Sidebar = ({ isCollapsed, toggleSidebar, isMobile }) => {
     return location.pathname === item.path;
   };
 
+  const handleLogout = async (e) => {
+  e.preventDefault();
+  
+  try {
+    // Clear client-side storage
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // Optional: Make API call to logout if your backend requires it
+    // await axios.post('/api/auth/logout', {}, { withCredentials: true });
+    
+    // Redirect to login page
+    window.location.href = '/login';
+    
+    // Close mobile sidebar if open
+    if (isMobile) {
+      toggleSidebar();
+    }
+  } catch (error) {
+    console.error('Logout error:', error);
+  }
+};
+
   return (
     <div className={`
       h-full bg-white text-gray-800 flex flex-col
@@ -217,18 +240,21 @@ const Sidebar = ({ isCollapsed, toggleSidebar, isMobile }) => {
           <User className={`${isCollapsed ? '' : 'mr-3'} h-5 w-5 text-gray-600 ${location.pathname === '/profile' ? 'text-white' : ''}`} />
           {!isCollapsed && <span className="text-sm font-medium">Profile</span>}
         </Link>
-        <Link
-          to="/login"
-          onClick={() => isMobile && toggleSidebar()}
-          className={`
-            flex items-center p-3 mx-2 rounded-md hover:bg-orange-600
-            ${isCollapsed ? 'justify-center' : 'px-4'}
-            ${location.pathname === '/logout' ? 'bg-orange-500 text-white' : ''}
-          `}
-        >
-          <LogOut className={`${isCollapsed ? '' : 'mr-3'} h-5 w-5 text-gray-600 ${location.pathname === '/logout' ? 'text-white' : ''}`} />
-          {!isCollapsed && <span className="text-sm font-medium">Logout</span>}
-        </Link>
+      <Link
+  to="/login"
+  onClick={(e) => {
+    handleLogout(e);
+    if (isMobile) toggleSidebar();
+  }}
+  className={`
+    flex items-center p-3 mx-2 rounded-md hover:bg-orange-600
+    ${isCollapsed ? 'justify-center' : 'px-4'}
+    ${location.pathname === '/logout' ? 'bg-orange-500 text-white' : ''}
+  `}
+>
+  <LogOut className={`${isCollapsed ? '' : 'mr-3'} h-5 w-5 text-gray-600 ${location.pathname === '/logout' ? 'text-white' : ''}`} />
+  {!isCollapsed && <span className="text-sm font-medium">Logout</span>}
+</Link>
       </div>
     </div>
   );

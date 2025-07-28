@@ -10,6 +10,7 @@ const Lifts = () => {
   // State for lifts data and loading status
   const [lifts, setLifts] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [selectedLifts, setSelectedLifts] = useState([]);
 
   // State for filters
   const [filters, setFilters] = useState({
@@ -49,7 +50,7 @@ const Lifts = () => {
     setLoading(true);
     try {
       // Fetch lifts data
-      const liftsResponse = await axios.get(`${apiBaseUrl}/lift_list/`, { 
+      const liftsResponse = await axios.get(`${apiBaseUrl}/auth/lift_list/`, { 
         withCredentials: true 
       });
       
@@ -74,6 +75,7 @@ const Lifts = () => {
       }));
 
       setLifts(liftsData);
+      setSelectedLifts([]);
 
       // Derive model options from lifts data
       const uniqueModels = [...new Set(liftsData.map(lift => lift.model).filter(model => model))];
@@ -91,15 +93,15 @@ const Lifts = () => {
         controllerBrands, 
         cabins
       ] = await Promise.all([
-        axios.get(`${apiBaseUrl}/brands/`, { withCredentials: true }),
-        axios.get(`${apiBaseUrl}/floor-ids/`, { withCredentials: true }),
-        axios.get(`${apiBaseUrl}/machine-types/`, { withCredentials: true }),
-        axios.get(`${apiBaseUrl}/lift-types/`, { withCredentials: true }),
-        axios.get(`${apiBaseUrl}/door-types/`, { withCredentials: true }),
-        axios.get(`${apiBaseUrl}/machine-brands/`, { withCredentials: true }),
-        axios.get(`${apiBaseUrl}/door-brands/`, { withCredentials: true }),
-        axios.get(`${apiBaseUrl}/controller-brands/`, { withCredentials: true }),
-        axios.get(`${apiBaseUrl}/cabins/`, { withCredentials: true }),
+        axios.get(`${apiBaseUrl}/auth/brands/`, { withCredentials: true }),
+        axios.get(`${apiBaseUrl}/auth/floor-ids/`, { withCredentials: true }),
+        axios.get(`${apiBaseUrl}/auth/machine-types/`, { withCredentials: true }),
+        axios.get(`${apiBaseUrl}/auth/lift-types/`, { withCredentials: true }),
+        axios.get(`${apiBaseUrl}/auth/door-types/`, { withCredentials: true }),
+        axios.get(`${apiBaseUrl}/auth/machine-brands/`, { withCredentials: true }),
+        axios.get(`${apiBaseUrl}/auth/door-brands/`, { withCredentials: true }),
+        axios.get(`${apiBaseUrl}/auth/controller-brands/`, { withCredentials: true }),
+        axios.get(`${apiBaseUrl}/auth/cabins/`, { withCredentials: true }),
       ]);
 
       // Set dropdown options
@@ -153,19 +155,64 @@ const Lifts = () => {
     setCurrentPage(1);
   };
 
+  // Handle lift selection
+  const handleSelectLift = (id) => {
+    setSelectedLifts(prev => 
+      prev.includes(id) 
+        ? prev.filter(liftId => liftId !== id)
+        : [...prev, id]
+    );
+  };
+
+  // Handle select all lifts on current page
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedLifts(currentLifts.map(lift => lift.id));
+    } else {
+      setSelectedLifts([]);
+    }
+  };
+
   // Handle lift deletion
   const handleDeleteLift = async (id) => {
     if (window.confirm('Are you sure you want to delete this lift?')) {
       try {
-        await axios.delete(`${apiBaseUrl}/delete_lift/${id}/`, { 
+        await axios.delete(`${apiBaseUrl}/auth/delete_lift/${id}/`, { 
           withCredentials: true 
         });
         setLifts(prev => prev.filter(lift => lift.id !== id));
+        setSelectedLifts(prev => prev.filter(liftId => liftId !== id));
         setCurrentPage(1); // Reset to first page after deletion
         toast.success('Lift deleted successfully.');
       } catch (error) {
         console.error('Error deleting lift:', error.response?.data || error);
         toast.error(error.response?.data?.error || 'Failed to delete lift.');
+      }
+    }
+  };
+
+  // Handle bulk delete
+  const handleBulkDelete = async () => {
+    if (selectedLifts.length === 0) {
+      toast.warning('No lifts selected for deletion');
+      return;
+    }
+
+    if (window.confirm(`Are you sure you want to delete ${selectedLifts.length} selected lifts?`)) {
+      try {
+        await Promise.all(
+          selectedLifts.map(id => 
+            axios.delete(`${apiBaseUrl}/auth/delete_lift/${id}/`, { 
+              withCredentials: true 
+            })
+          )
+        );
+        setLifts(prev => prev.filter(lift => !selectedLifts.includes(lift.id)));
+        setSelectedLifts([]);
+        toast.success(`${selectedLifts.length} lifts deleted successfully.`);
+      } catch (error) {
+        console.error('Error deleting lifts:', error);
+        toast.error(error.response?.data?.error || 'Failed to delete selected lifts.');
       }
     }
   };
@@ -197,298 +244,311 @@ const Lifts = () => {
 
   //dropdown for bulk actions,3dot menu
   useEffect(() => {
-  const handleClickOutside = (event) => {
-    const bulkActions = document.getElementById('bulk-actions-dropdown');
-    const options = document.getElementById('options-dropdown');
-    
-    if (bulkActions && !event.target.closest('#bulk-actions-menu') && !bulkActions.contains(event.target)) {
-      bulkActions.classList.add('hidden');
-    }
-    
-    if (options && !event.target.closest('#options-menu') && !options.contains(event.target)) {
-      options.classList.add('hidden');
-    }
-  };
+    const handleClickOutside = (event) => {
+      const bulkActions = document.getElementById('bulk-actions-dropdown');
+      const options = document.getElementById('options-dropdown');
+      
+      if (bulkActions && !event.target.closest('#bulk-actions-menu') && !bulkActions.contains(event.target)) {
+        bulkActions.classList.add('hidden');
+      }
+      
+      if (options && !event.target.closest('#options-menu') && !options.contains(event.target)) {
+        options.classList.add('hidden');
+      }
+    };
 
-  document.addEventListener('mousedown', handleClickOutside);
-  return () => {
-    document.removeEventListener('mousedown', handleClickOutside);
-  };
-}, []);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   return (
-     <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
+    <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
       {/* Header and Actions */}
-     <div className="flex flex-col space-y-3 md:space-y-0 md:flex-row justify-between items-start md:items-center mb-4 md:mb-6">
-  <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Lifts Management</h1>
-  
-  <div className="flex items-center space-x-2 w-full md:w-auto">
-    {/* Bulk Actions Dropdown - UI only */}
-  <div className="relative inline-block text-left">
-      <div>
-        <button
-          type="button"
-          className="inline-flex items-center justify-center rounded-md bg-gray-200 px-3 md:px-4 py-2 text-sm md:text-base font-medium text-gray-700 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
-          id="bulk-actions-menu"
-          aria-expanded="true"
-          aria-haspopup="true"
-          onClick={(e) => {
-            e.stopPropagation();
-            document.getElementById('bulk-actions-dropdown').classList.toggle('hidden');
-          }}
-        >
-          Bulk Actions
-          <ChevronDown className="ml-2 h-4 w-4" />
-        </button>
-      </div>
+      <div className="flex flex-col space-y-3 md:space-y-0 md:flex-row justify-between items-start md:items-center mb-4 md:mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Lifts Management</h1>
+        
+        <div className="flex items-center space-x-2 w-full md:w-auto">
+          {/* Bulk Actions Dropdown */}
+          <div className="relative inline-block text-left">
+            <div>
+              <button
+                type="button"
+                className={`inline-flex items-center justify-center rounded-md px-3 md:px-4 py-2 text-sm md:text-base font-medium focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 ${
+                  selectedLifts.length > 0
+                    ? 'bg-orange-500 text-white hover:bg-orange-600'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+                id="bulk-actions-menu"
+                aria-expanded="true"
+                aria-haspopup="true"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  document.getElementById('bulk-actions-dropdown').classList.toggle('hidden');
+                }}
+                disabled={selectedLifts.length === 0}
+              >
+                Bulk Actions
+                <ChevronDown className="ml-2 h-4 w-4" />
+              </button>
+            </div>
 
-      {/* Bulk Actions Dropdown Menu */}
-      <div
-        id="bulk-actions-dropdown"
-        className="hidden absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
-        role="menu"
-        aria-orientation="vertical"
-        aria-labelledby="bulk-actions-menu"
-      >
-        <div className="py-1" role="none">
+            {/* Bulk Actions Dropdown Menu */}
+            <div
+              id="bulk-actions-dropdown"
+              className="hidden absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+              role="menu"
+              aria-orientation="vertical"
+              aria-labelledby="bulk-actions-menu"
+            >
+              <div className="py-1" role="none">
+                <button
+                  className="flex w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  role="menuitem"
+                  onClick={() => {
+                    handleBulkDelete();
+                    document.getElementById('bulk-actions-dropdown').classList.add('hidden');
+                  }}
+                >
+                  <Trash2 className="mr-3 h-5 w-5 text-gray-400" />
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Three Dot Menu Button */}
+          <div className="relative inline-block text-left ml-2">
+            <div>
+              <button
+                type="button"
+                className="inline-flex items-center rounded-md p-2 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+                id="options-menu"
+                aria-expanded="true"
+                aria-haspopup="true"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  document.getElementById('options-dropdown').classList.toggle('hidden');
+                }}
+              >
+                <span className="sr-only">Open options</span>
+                <MoreVertical className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Options Dropdown Menu */}
+            <div
+              id="options-dropdown"
+              className="hidden absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+              role="menu"
+              aria-orientation="vertical"
+              aria-labelledby="options-menu"
+            >
+              <div className="py-1" role="none">
+                <button
+                  className="flex w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  role="menuitem"
+                  onClick={() => {
+                    // Handle export
+                    document.getElementById('options-dropdown').classList.add('hidden');
+                  }}
+                >
+                  <Download className="mr-1 h-5 w-5 text-gray-400" />
+                  Export
+                </button>
+                <button
+                  className="flex w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  role="menuitem"
+                  onClick={() => {
+                    // Handle import CSV
+                    document.getElementById('options-dropdown').classList.add('hidden');
+                  }}
+                >
+                  <Upload className="mr-1 h-5 w-5 text-gray-400" />
+                  Import CSV
+                </button>
+                <button
+                  className="flex w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  role="menuitem"
+                  onClick={() => {
+                    // Handle lift import with customer
+                    document.getElementById('options-dropdown').classList.add('hidden');
+                  }}
+                >
+                  <Import className="mr-1 h-5 w-5 text-gray-400" />
+                  Lift Import with Customer
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Create New Lift Button */}
           <button
-            className="flex w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-            role="menuitem"
-            onClick={() => {
-              // Handle bulk delete
-              document.getElementById('bulk-actions-dropdown').classList.add('hidden');
-            }}
+            onClick={() => setIsCreateModalOpen(true)}
+            className="bg-orange-500 text-white px-3 md:px-4 py-2 rounded-lg hover:bg-orange-600 transition duration-200 text-sm md:text-base"
           >
-            <Trash2 className="mr-3 h-5 w-5 text-gray-400" />
-            Delete
+            Create New Lift
           </button>
         </div>
       </div>
-    </div>
 
-    {/* Three Dot Menu Button - UI only */}
-     <div className="relative inline-block text-left ml-2">
-      <div>
-        <button
-          type="button"
-          className="inline-flex items-center rounded-md p-2 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
-          id="options-menu"
-          aria-expanded="true"
-          aria-haspopup="true"
-          onClick={(e) => {
-            e.stopPropagation();
-            document.getElementById('options-dropdown').classList.toggle('hidden');
-          }}
-        >
-          <span className="sr-only">Open options</span>
-          <MoreVertical className="h-5 w-5" />
-        </button>
-      </div>
+      {/* Filters Section */}
+      <div className="bg-white p-3 md:p-4 rounded-lg shadow-lg mb-4 md:mb-6">
+        <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-9 gap-3 md:gap-4 items-end">
+          {/* Door Type */}
+          <div className="xl:col-span-1">
+            <select 
+              name="doorType" 
+              value={filters.doorType} 
+              onChange={handleFilterChange}
+              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm md:text-base"
+            >
+              <option value="ALL">All Door Types</option>
+              {doorTypeOptions.map(option => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </div>
 
-      {/* Options Dropdown Menu */}
-      <div
-        id="options-dropdown"
-        className="hidden absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
-        role="menu"
-        aria-orientation="vertical"
-        aria-labelledby="options-menu"
-      >
-        <div className="py-1" role="none">
-          <button
-            className="flex w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-            role="menuitem"
-            onClick={() => {
-              // Handle export
-              document.getElementById('options-dropdown').classList.add('hidden');
-            }}
-          >
-            <Download className="mr-1 h-5 w-5 text-gray-400" />
-            Export
-          </button>
-          <button
-            className="flex w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-            role="menuitem"
-            onClick={() => {
-              // Handle import CSV
-              document.getElementById('options-dropdown').classList.add('hidden');
-            }}
-          >
-            <Upload className="mr-1 h-5 w-5 text-gray-400" />
-            Import CSV
-          </button>
-          <button
-            className="flex w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-            role="menuitem"
-            onClick={() => {
-              // Handle lift import with customer
-              document.getElementById('options-dropdown').classList.add('hidden');
-            }}
-          >
-            <Import className="mr-1 h-5 w-5 text-gray-400" />
-            Lift Import with Customer
-          </button>
+          {/* Lift Type */}
+          <div className="xl:col-span-1">
+            <select 
+              name="liftType" 
+              value={filters.liftType} 
+              onChange={handleFilterChange}
+              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm md:text-base"
+            >
+              <option value="ALL">All Lift Types</option>
+              {liftTypeOptions.map(option => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Machine Type */}
+          <div className="xl:col-span-1">
+            <select 
+              name="machineType" 
+              value={filters.machineType} 
+              onChange={handleFilterChange}
+              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm md:text-base"
+            >
+              <option value="ALL">All Machine Types</option>
+              {machineTypeOptions.map(option => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Floor */}
+          <div className="xl:col-span-1">
+            <select 
+              name="floorID" 
+              value={filters.floorID} 
+              onChange={handleFilterChange}
+              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm md:text-base"
+            >
+              <option value="ALL">All Floors</option>
+              {floorOptions.map(option => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Brand */}
+          <div className="xl:col-span-1">
+            <select 
+              name="brand" 
+              value={filters.brand} 
+              onChange={handleFilterChange}
+              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm md:text-base"
+            >
+              <option value="ALL">All Brands</option>
+              {brandOptions.map(option => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Load */}
+          <div className="xl:col-span-1">
+            <select 
+              name="load" 
+              value={filters.load} 
+              onChange={handleFilterChange}
+              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm md:text-base"
+            >
+              <option value="ALL">All Loads</option>
+              {[...new Set(lifts.map(lift => lift.load.toString()))].map(option => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Passengers */}
+          <div className="xl:col-span-1">
+            <select 
+              name="noOfPassengers" 
+              value={filters.noOfPassengers} 
+              onChange={handleFilterChange}
+              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm md:text-base"
+            >
+              <option value="ALL">All Passengers</option>
+              {[...new Set(lifts.map(lift => lift.noOfPassengers))].map(option => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Model */}
+          <div className="xl:col-span-1">
+            <select 
+              name="model" 
+              value={filters.model} 
+              onChange={handleFilterChange}
+              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm md:text-base"
+            >
+              <option value="ALL">All Models</option>
+              {modelOptions.map(option => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filter Actions */}
+          <div className="flex flex-row space-x-2 col-span-1 xs:col-span-2 md:col-span-3 lg:col-span-4 xl:col-span-1 2xl:col-span-1">
+            <button
+              onClick={resetFilters}
+              className="flex-1 bg-gray-200 text-gray-700 px-3 md:px-4 py-2 rounded-lg hover:bg-gray-300 transition duration-200 text-sm md:text-base"
+            >
+              Reset
+            </button>
+            <button
+              onClick={() => setCurrentPage(1)}
+              className="flex-1 bg-orange-500 text-white px-3 md:px-4 py-2 rounded-lg hover:bg-orange-600 transition duration-200 text-sm md:text-base flex items-center justify-center"
+            >
+              <Search className="w-4 h-4 mr-1" />
+              <span>Search</span>
+            </button>
+          </div>
         </div>
       </div>
-    </div>
 
-    {/* Create New Lift Button - functional */}
-    <button
-      onClick={() => setIsCreateModalOpen(true)}
-      className="bg-orange-500 text-white px-3 md:px-4 py-2 rounded-lg hover:bg-orange-600 transition duration-200 text-sm md:text-base"
-    >
-      Create New Lift
-    </button>
-  </div>
-</div>
-
-     {/* Filters Section - Fully Responsive */}
-<div className="bg-white p-3 md:p-4 rounded-lg shadow-lg mb-4 md:mb-6">
-  <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-9 gap-3 md:gap-4 items-end">
-    {/* Door Type */}
-    <div className="xl:col-span-1">
-      <select 
-        name="doorType" 
-        value={filters.doorType} 
-        onChange={handleFilterChange}
-        className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm md:text-base"
-      >
-        <option value="ALL">All Door Types</option>
-        {doorTypeOptions.map(option => (
-          <option key={option} value={option}>{option}</option>
-        ))}
-      </select>
-    </div>
-
-    {/* Lift Type */}
-    <div className="xl:col-span-1">
-      <select 
-        name="liftType" 
-        value={filters.liftType} 
-        onChange={handleFilterChange}
-        className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm md:text-base"
-      >
-        <option value="ALL">All Lift Types</option>
-        {liftTypeOptions.map(option => (
-          <option key={option} value={option}>{option}</option>
-        ))}
-      </select>
-    </div>
-
-    {/* Machine Type */}
-    <div className="xl:col-span-1">
-      <select 
-        name="machineType" 
-        value={filters.machineType} 
-        onChange={handleFilterChange}
-        className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm md:text-base"
-      >
-        <option value="ALL">All Machine Types</option>
-        {machineTypeOptions.map(option => (
-          <option key={option} value={option}>{option}</option>
-        ))}
-      </select>
-    </div>
-
-    {/* Floor */}
-    <div className="xl:col-span-1">
-      <select 
-        name="floorID" 
-        value={filters.floorID} 
-        onChange={handleFilterChange}
-        className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm md:text-base"
-      >
-        <option value="ALL">All Floors</option>
-        {floorOptions.map(option => (
-          <option key={option} value={option}>{option}</option>
-        ))}
-      </select>
-    </div>
-
-    {/* Brand */}
-    <div className="xl:col-span-1">
-      <select 
-        name="brand" 
-        value={filters.brand} 
-        onChange={handleFilterChange}
-        className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm md:text-base"
-      >
-        <option value="ALL">All Brands</option>
-        {brandOptions.map(option => (
-          <option key={option} value={option}>{option}</option>
-        ))}
-      </select>
-    </div>
-
-    {/* Load */}
-    <div className="xl:col-span-1">
-      <select 
-        name="load" 
-        value={filters.load} 
-        onChange={handleFilterChange}
-        className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm md:text-base"
-      >
-        <option value="ALL">All Loads</option>
-        {[...new Set(lifts.map(lift => lift.load.toString()))].map(option => (
-          <option key={option} value={option}>{option}</option>
-        ))}
-      </select>
-    </div>
-
-    {/* Passengers */}
-    <div className="xl:col-span-1">
-      <select 
-        name="noOfPassengers" 
-        value={filters.noOfPassengers} 
-        onChange={handleFilterChange}
-        className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm md:text-base"
-      >
-        <option value="ALL">All Passengers</option>
-        {[...new Set(lifts.map(lift => lift.noOfPassengers))].map(option => (
-          <option key={option} value={option}>{option}</option>
-        ))}
-      </select>
-    </div>
-
-    {/* Model */}
-    <div className="xl:col-span-1">
-      <select 
-        name="model" 
-        value={filters.model} 
-        onChange={handleFilterChange}
-        className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm md:text-base"
-      >
-        <option value="ALL">All Models</option>
-        {modelOptions.map(option => (
-          <option key={option} value={option}>{option}</option>
-        ))}
-      </select>
-    </div>
-
-    {/* Filter Actions - Responsive column span */}
-    <div className="flex flex-row space-x-2 col-span-1 xs:col-span-2 md:col-span-3 lg:col-span-4 xl:col-span-1 2xl:col-span-1">
-      <button
-        onClick={resetFilters}
-        className="flex-1 bg-gray-200 text-gray-700 px-3 md:px-4 py-2 rounded-lg hover:bg-gray-300 transition duration-200 text-sm md:text-base"
-      >
-        Reset
-      </button>
-      <button
-        onClick={() => setCurrentPage(1)}
-        className="flex-1 bg-orange-500 text-white px-3 md:px-4 py-2 rounded-lg hover:bg-orange-600 transition duration-200 text-sm md:text-base flex items-center justify-center"
-      >
-        <Search className="w-4 h-4 mr-1" />
-        <span>Search</span>
-      </button>
-    </div>
-  </div>
-</div>
-
-      {/* Tablet and Desktop View (768px and above) */}
+      {/* Tablet and Desktop View */}
       <div className="hidden md:block bg-white rounded-lg shadow-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[768px]">
             <thead>
               <tr className="bg-gray-100 text-gray-700 uppercase text-xs font-semibold">
+                <th className="p-3 lg:p-4 text-left">
+                  <input 
+                    type="checkbox" 
+                    checked={selectedLifts.length > 0 && selectedLifts.length === currentLifts.length}
+                    onChange={handleSelectAll}
+                    className="h-4 w-4 text-orange-500 rounded focus:ring-orange-500 border-gray-300"
+                  />
+                </th>
                 <th className="p-3 lg:p-4 text-left">ID</th>
                 <th className="p-3 lg:p-4 text-left">Lift Code</th>
                 <th className="p-3 lg:p-4 text-left">Passengers</th>
@@ -505,7 +565,7 @@ const Lifts = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="11" className="text-center p-4">
+                  <td colSpan="12" className="text-center p-4">
                     <div className="flex justify-center items-center py-8">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
                     </div>
@@ -514,6 +574,14 @@ const Lifts = () => {
               ) : currentLifts.length > 0 ? (
                 currentLifts.map(lift => (
                   <tr key={lift.id} className="border-t hover:bg-gray-50 transition duration-200">
+                    <td className="p-3 lg:p-4">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedLifts.includes(lift.id)}
+                        onChange={() => handleSelectLift(lift.id)}
+                        className="h-4 w-4 text-orange-500 rounded focus:ring-orange-500 border-gray-300"
+                      />
+                    </td>
                     <td className="p-3 lg:p-4 text-gray-800">{lift.id}</td>
                     <td className="p-3 lg:p-4 text-gray-800 font-medium whitespace-nowrap">{lift.liftCode}</td>
                     <td className="p-3 lg:p-4 text-gray-800 whitespace-nowrap">{lift.noOfPassengers}</td>
@@ -546,7 +614,7 @@ const Lifts = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="11" className="text-center p-4 text-gray-500">
+                  <td colSpan="12" className="text-center p-4 text-gray-500">
                     No lifts found matching your criteria
                   </td>
                 </tr>
@@ -559,6 +627,11 @@ const Lifts = () => {
         <div className="p-3 md:p-4 text-gray-600 flex flex-col md:flex-row justify-between items-center border-t">
           <span className="text-sm md:text-base mb-2 md:mb-0">
             Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredLifts.length)} of {filteredLifts.length}
+            {selectedLifts.length > 0 && (
+              <span className="ml-2 text-orange-500">
+                ({selectedLifts.length} selected)
+              </span>
+            )}
           </span>
           <div className="flex space-x-2">
             <button
@@ -579,7 +652,7 @@ const Lifts = () => {
         </div>
       </div>
 
-      {/* Mobile View (below 768px) - Attractive Cards */}
+      {/* Mobile View - Attractive Cards */}
       <div className="md:hidden space-y-3">
         {loading ? (
           <div className="flex justify-center items-center py-8 bg-white rounded-lg shadow">
@@ -589,11 +662,19 @@ const Lifts = () => {
           currentLifts.map(lift => (
             <div key={lift.id} className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow duration-200">
               <div className="flex justify-between items-start">
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-gray-800 text-lg truncate">{lift.liftCode}</h3>
-                  <p className="text-sm text-gray-600 truncate">
-                    {lift.brand} {lift.model && `• ${lift.model}`}
-                  </p>
+                <div className="flex items-center">
+                  <input 
+                    type="checkbox" 
+                    checked={selectedLifts.includes(lift.id)}
+                    onChange={() => handleSelectLift(lift.id)}
+                    className="h-4 w-4 text-orange-500 rounded focus:ring-orange-500 border-gray-300 mr-2"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-gray-800 text-lg truncate">{lift.liftCode}</h3>
+                    <p className="text-sm text-gray-600 truncate">
+                      {lift.brand} {lift.model && `• ${lift.model}`}
+                    </p>
+                  </div>
                 </div>
                 <div className="flex space-x-2 ml-2">
                   <button
@@ -642,6 +723,11 @@ const Lifts = () => {
         <div className="bg-white rounded-lg shadow p-3 text-gray-600 flex flex-col xs:flex-row justify-between items-center">
           <span className="text-sm sm:text-base mb-2 xs:mb-0">
             Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredLifts.length)} of {filteredLifts.length}
+            {selectedLifts.length > 0 && (
+              <span className="ml-2 text-orange-500">
+                ({selectedLifts.length} selected)
+              </span>
+            )}
           </span>
           <div className="flex space-x-2">
             <button
@@ -662,40 +748,61 @@ const Lifts = () => {
         </div>
       </div>
 
-      {/* Lift Form Modal (unchanged) */}
-      {(isCreateModalOpen || isEditModalOpen) && (
-        <LiftForm
-          isEdit={isEditModalOpen}
-          initialData={currentLift}
-          onClose={() => {
-            setIsCreateModalOpen(false);
-            setIsEditModalOpen(false);
-            setCurrentLift(null);
-          }}
-          onSubmitSuccess={fetchData}
-          apiBaseUrl={apiBaseUrl}
-          dropdownOptions={{
-            brandOptions,
-            floorOptions,
-            machineTypeOptions,
-            liftTypeOptions,
-            doorTypeOptions,
-            machineBrandOptions,
-            doorBrandOptions,
-            controllerBrandOptions,
-            cabinOptions,
-            setBrandOptions,
-            setFloorOptions,
-            setMachineTypeOptions,
-            setLiftTypeOptions,
-            setDoorTypeOptions,
-            setMachineBrandOptions,
-            setDoorBrandOptions,
-            setControllerBrandOptions,
-            setCabinOptions,
-          }}
-        />
-      )}
+      {/* Lift Form Modal */}
+     // In your Lifts component, modify the LiftForm rendering part:
+{(isCreateModalOpen || isEditModalOpen) && (
+  <LiftForm
+    isEdit={isEditModalOpen}
+    initialData={currentLift}
+    onClose={() => {
+      setIsCreateModalOpen(false);
+      setIsEditModalOpen(false);
+      setCurrentLift(null);
+    }}
+    onSubmitSuccess={(message) => {
+      fetchData(); // Refresh the data
+      toast.success(message || (isEditModalOpen ? 'Lift updated successfully!' : 'Lift created successfully!'), {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+    }}
+    onSubmitError={(error) => {
+      toast.error(error || (isEditModalOpen ? 'Failed to update lift' : 'Failed to create lift'), {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+    }}
+    apiBaseUrl={apiBaseUrl}
+    dropdownOptions={{
+      brandOptions,
+      floorOptions,
+      machineTypeOptions,
+      liftTypeOptions,
+      doorTypeOptions,
+      machineBrandOptions,
+      doorBrandOptions,
+      controllerBrandOptions,
+      cabinOptions,
+      setBrandOptions,
+      setFloorOptions,
+      setMachineTypeOptions,
+      setLiftTypeOptions,
+      setDoorTypeOptions,
+      setMachineBrandOptions,
+      setDoorBrandOptions,
+      setControllerBrandOptions,
+      setCabinOptions,
+    }}
+  />
+)}
     </div>
   );
 };
