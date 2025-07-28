@@ -37,8 +37,10 @@ const CustomerForm = ({
     ...initialData,
   });
 
-  // Modal state for adding new dropdown options (only for routes and branch)
+  // Modal state for adding new dropdown options (for state, city, routes, and branch)
   const [modalState, setModalState] = useState({
+    state: { isOpen: false, value: '' },
+    city: { isOpen: false, value: '' },
     routes: { isOpen: false, value: '' },
     branch: { isOpen: false, value: '' },
   });
@@ -76,7 +78,7 @@ const CustomerForm = ({
     }));
   };
 
-  // Handle adding new dropdown option (only for routes and branch)
+  // Handle adding new dropdown option (for state, city, routes, and branch)
   const handleAddOption = async (field) => {
     const value = modalState[field].value.trim();
     if (!value) {
@@ -86,6 +88,8 @@ const CustomerForm = ({
 
     try {
       const apiEndpoints = {
+        state: 'add-state/',
+        city: 'add-city/',
         routes: 'add-route/',
         branch: 'add-branch/',
       };
@@ -180,29 +184,23 @@ const CustomerForm = ({
     }
   };
 
-  // Render a standard select input (for fields without add option)
-  const renderStandardSelect = (name, label, options) => (
+  // Render a standard text input
+  const renderStandardInput = (name, label) => (
     <div className="form-group">
       <label className="block text-sm font-medium text-gray-700 mb-1">
         {label}
       </label>
-      <select
+      <input
+        type="text"
         name={name}
         value={newCustomer[name]}
         onChange={handleInputChange}
-        className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 appearance-none bg-white"
-      >
-        <option value="">Select {label}</option>
-        {options?.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
+        className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
+      />
     </div>
   );
 
-  // Render a select input with add option (for routes and branch)
+  // Render a select input with add option (for state, city, routes, and branch)
   const renderSelectWithAdd = (name, label, options) => (
     <div className="form-group">
       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -230,6 +228,28 @@ const CustomerForm = ({
           +
         </button>
       </div>
+    </div>
+  );
+
+  // Render a standard select input (for fields without add option)
+  const renderStandardSelect = (name, label, options) => (
+    <div className="form-group">
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        {label}
+      </label>
+      <select
+        name={name}
+        value={newCustomer[name]}
+        onChange={handleInputChange}
+        className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 appearance-none bg-white"
+      >
+        <option value="">Select {label}</option>
+        {options?.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
     </div>
   );
 
@@ -300,9 +320,21 @@ const CustomerForm = ({
                 />
               </div>
 
-        
+              {/* Site Address */}
+              <div className="form-group">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  SITE ADDRESS
+                </label>
+                <textarea
+                  name="siteAddress"
+                  value={newCustomer.siteAddress}
+                  onChange={handleInputChange}
+                  rows={3}
+                  className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
+                />
+              </div>
 
-               {/* Office Address */}
+              {/* Office Address */}
               <div className="form-group">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   OFFICE ADDRESS
@@ -330,23 +362,6 @@ const CustomerForm = ({
                   Same as Site Address
                 </label>
               </div>
-
-
-                    {/* Site Address */}
-              <div className="form-group">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  SITE ADDRESS
-                </label>
-                <textarea
-                  name="siteAddress"
-                  value={newCustomer.siteAddress}
-                  onChange={handleInputChange}
-                  rows={3}
-                  className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
-                />
-              </div>
-
-             
 
               {/* Contact Person Name */}
               <div className="form-group">
@@ -440,13 +455,13 @@ const CustomerForm = ({
               </div>
 
               {/* Country */}
-              {renderStandardSelect('country', 'Country', dropdownOptions.countryOptions)}
+              {renderStandardInput('country', 'Country')}
 
               {/* Province/State */}
-              {renderStandardSelect('state', 'State', dropdownOptions.stateOptions)}
+              {renderSelectWithAdd('state', 'State', dropdownOptions.stateOptions)}
 
               {/* City */}
-              {renderStandardSelect('city', 'City', dropdownOptions.cityOptions)}
+              {renderSelectWithAdd('city', 'City', dropdownOptions.cityOptions)}
 
               {/* Sector */}
               {renderStandardSelect('sector', 'Sector', dropdownOptions.sectorOptions)}
@@ -533,7 +548,7 @@ const CustomerForm = ({
         </div>
       </div>
 
-      {/* Secondary Modals for Adding Options (only for routes and branch) */}
+      {/* Secondary Modals for Adding Options (for state, city, routes, and branch) */}
       {Object.entries(modalState).map(([field, { isOpen, value }]) => (
         isOpen && (
           <div key={field} className="fixed inset-0  bg-opacity-50 flex items-center justify-center z-50 p-4">
