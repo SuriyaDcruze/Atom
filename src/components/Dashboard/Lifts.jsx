@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import LiftForm from '../Dashboard/Forms/LiftForm';
-import { Edit,Pencil, Trash2,RefreshCw,Search } from 'lucide-react';
+import { Edit,Pencil, Trash2,RefreshCw,Search,ChevronDown,MoreVertical,Download,Upload,Import } from 'lucide-react';
 
 const apiBaseUrl = import.meta.env.VITE_BASE_API;
 
@@ -195,6 +195,27 @@ const Lifts = () => {
   const currentLifts = filteredLifts.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredLifts.length / itemsPerPage);
 
+  //dropdown for bulk actions,3dot menu
+  useEffect(() => {
+  const handleClickOutside = (event) => {
+    const bulkActions = document.getElementById('bulk-actions-dropdown');
+    const options = document.getElementById('options-dropdown');
+    
+    if (bulkActions && !event.target.closest('#bulk-actions-menu') && !bulkActions.contains(event.target)) {
+      bulkActions.classList.add('hidden');
+    }
+    
+    if (options && !event.target.closest('#options-menu') && !options.contains(event.target)) {
+      options.classList.add('hidden');
+    }
+  };
+
+  document.addEventListener('mousedown', handleClickOutside);
+  return () => {
+    document.removeEventListener('mousedown', handleClickOutside);
+  };
+}, []);
+
   return (
      <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
       {/* Header and Actions */}
@@ -203,28 +224,111 @@ const Lifts = () => {
   
   <div className="flex items-center space-x-2 w-full md:w-auto">
     {/* Bulk Actions Dropdown - UI only */}
-    <div className="relative">
-      <button
-        className="flex items-center justify-center bg-gray-200 text-gray-700 px-3 md:px-4 py-2 rounded-lg hover:bg-gray-300 transition duration-200 text-sm md:text-base"
-        onClick={() => {}}
+  <div className="relative inline-block text-left">
+      <div>
+        <button
+          type="button"
+          className="inline-flex items-center justify-center rounded-md bg-gray-200 px-3 md:px-4 py-2 text-sm md:text-base font-medium text-gray-700 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+          id="bulk-actions-menu"
+          aria-expanded="true"
+          aria-haspopup="true"
+          onClick={(e) => {
+            e.stopPropagation();
+            document.getElementById('bulk-actions-dropdown').classList.toggle('hidden');
+          }}
+        >
+          Bulk Actions
+          <ChevronDown className="ml-2 h-4 w-4" />
+        </button>
+      </div>
+
+      {/* Bulk Actions Dropdown Menu */}
+      <div
+        id="bulk-actions-dropdown"
+        className="hidden absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+        role="menu"
+        aria-orientation="vertical"
+        aria-labelledby="bulk-actions-menu"
       >
-        Bulk Actions
-        <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
+        <div className="py-1" role="none">
+          <button
+            className="flex w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+            role="menuitem"
+            onClick={() => {
+              // Handle bulk delete
+              document.getElementById('bulk-actions-dropdown').classList.add('hidden');
+            }}
+          >
+            <Trash2 className="mr-3 h-5 w-5 text-gray-400" />
+            Delete
+          </button>
+        </div>
+      </div>
     </div>
 
     {/* Three Dot Menu Button - UI only */}
-    <div className="relative">
-      <button
-        className="p-2 text-gray-500 hover:text-gray-700 focus:outline-none"
-        onClick={() => {}}
+     <div className="relative inline-block text-left ml-2">
+      <div>
+        <button
+          type="button"
+          className="inline-flex items-center rounded-md p-2 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+          id="options-menu"
+          aria-expanded="true"
+          aria-haspopup="true"
+          onClick={(e) => {
+            e.stopPropagation();
+            document.getElementById('options-dropdown').classList.toggle('hidden');
+          }}
+        >
+          <span className="sr-only">Open options</span>
+          <MoreVertical className="h-5 w-5" />
+        </button>
+      </div>
+
+      {/* Options Dropdown Menu */}
+      <div
+        id="options-dropdown"
+        className="hidden absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+        role="menu"
+        aria-orientation="vertical"
+        aria-labelledby="options-menu"
       >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-        </svg>
-      </button>
+        <div className="py-1" role="none">
+          <button
+            className="flex w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+            role="menuitem"
+            onClick={() => {
+              // Handle export
+              document.getElementById('options-dropdown').classList.add('hidden');
+            }}
+          >
+            <Download className="mr-1 h-5 w-5 text-gray-400" />
+            Export
+          </button>
+          <button
+            className="flex w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+            role="menuitem"
+            onClick={() => {
+              // Handle import CSV
+              document.getElementById('options-dropdown').classList.add('hidden');
+            }}
+          >
+            <Upload className="mr-1 h-5 w-5 text-gray-400" />
+            Import CSV
+          </button>
+          <button
+            className="flex w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+            role="menuitem"
+            onClick={() => {
+              // Handle lift import with customer
+              document.getElementById('options-dropdown').classList.add('hidden');
+            }}
+          >
+            <Import className="mr-1 h-5 w-5 text-gray-400" />
+            Lift Import with Customer
+          </button>
+        </div>
+      </div>
     </div>
 
     {/* Create New Lift Button - functional */}

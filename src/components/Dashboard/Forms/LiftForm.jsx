@@ -135,15 +135,15 @@ const LiftForm = ({
         controllerBrands, 
         cabins
       ] = await Promise.all([
-        axios.get(`${apiBaseUrl}/brands/`, { withCredentials: true }),
-        axios.get(`${apiBaseUrl}/floor-ids/`, { withCredentials: true }),
-        axios.get(`${apiBaseUrl}/lift-types/`, { withCredentials: true }),
-        axios.get(`${apiBaseUrl}/machine-types/`, { withCredentials: true }),
-        axios.get(`${apiBaseUrl}/machine-brands/`, { withCredentials: true }),
-        axios.get(`${apiBaseUrl}/door-types/`, { withCredentials: true }),
-        axios.get(`${apiBaseUrl}/door-brands/`, { withCredentials: true }),
-        axios.get(`${apiBaseUrl}/controller-brands/`, { withCredentials: true }),
-        axios.get(`${apiBaseUrl}/cabins/`, { withCredentials: true }),
+        axios.get(`${apiBaseUrl}/auth/brands/`, { withCredentials: true }),
+        axios.get(`${apiBaseUrl}/auth/floor-ids/`, { withCredentials: true }),
+        axios.get(`${apiBaseUrl}/auth/lift-types/`, { withCredentials: true }),
+        axios.get(`${apiBaseUrl}/auth/machine-types/`, { withCredentials: true }),
+        axios.get(`${apiBaseUrl}/auth/machine-brands/`, { withCredentials: true }),
+        axios.get(`${apiBaseUrl}/auth/door-types/`, { withCredentials: true }),
+        axios.get(`${apiBaseUrl}/auth/door-brands/`, { withCredentials: true }),
+        axios.get(`${apiBaseUrl}/auth/controller-brands/`, { withCredentials: true }),
+        axios.get(`${apiBaseUrl}/auth/cabins/`, { withCredentials: true }),
       ]);
 
       // Prepare lift data for API
