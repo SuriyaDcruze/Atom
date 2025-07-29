@@ -155,9 +155,9 @@ const Sidebar = ({ isCollapsed, toggleSidebar, isMobile }) => {
                     onClick={() => toggleMenuExpand(item.key)}
                     className={`
                       flex items-center p-3 mx-2 rounded-md cursor-pointer
-                      hover:bg-orange-600 transition-colors duration-200
+                      hover:bg-[#243158] hover:text-white transition-colors duration-200
                       ${isCollapsed ? 'justify-center' : 'px-4 justify-between'}
-                      ${isMenuActive(item) ? 'bg-orange-500 text-white' : ''}
+                      ${isMenuActive(item) ? 'bg-[#243158] text-white' : ''}
                     `}
                   >
                     <div className="flex items-center">
@@ -184,8 +184,8 @@ const Sidebar = ({ isCollapsed, toggleSidebar, isMobile }) => {
                             onClick={() => isMobile && toggleSidebar()}
                             className={`
                               flex items-center p-2 pl-3 rounded-md
-                              hover:bg-orange-600 transition-colors duration-200
-                              ${location.pathname === subItem.path ? 'bg-orange-500 text-white' : ''}
+                              hover:bg-[#243158] hover:text-white transition-colors duration-200
+                              ${location.pathname === subItem.path ? 'bg-[#243158] text-white' : ''}
                             `}
                           >
                             <span className={`mr-3 ${location.pathname === subItem.path ? 'text-white' : 'text-gray-600'}`}>
@@ -206,9 +206,9 @@ const Sidebar = ({ isCollapsed, toggleSidebar, isMobile }) => {
                   onClick={() => isMobile && toggleSidebar()}
                   className={`
                     flex items-center p-3 mx-2 rounded-md
-                    hover:bg-orange-600 transition-colors duration-200
+                    hover:bg-[#243158] hover:text-white transition-colors duration-200
                     ${isCollapsed ? 'justify-center' : 'px-4'}
-                    ${location.pathname === item.path ? 'bg-orange-500 text-white' : ''}
+                    ${location.pathname === item.path ? 'bg-[#243158] text-white' : ''}
                   `}
                 >
                   <span className={`${isCollapsed ? '' : 'mr-3'} text-gray-600 ${location.pathname === item.path ? 'text-white' : ''}`}>
@@ -232,9 +232,9 @@ const Sidebar = ({ isCollapsed, toggleSidebar, isMobile }) => {
           to="/profile"
           onClick={() => isMobile && toggleSidebar()}
           className={`
-            flex items-center p-3 mx-2 rounded-md hover:bg-orange-600
+            flex items-center p-3 mx-2 rounded-md hover:bg-[#243158] hover:text-white
             ${isCollapsed ? 'justify-center' : 'px-4'}
-            ${location.pathname === '/profile' ? 'bg-orange-500 text-white' : ''}
+            ${location.pathname === '/profile' ? 'bg-[#243158] text-white' : ''}
           `}
         >
           <User className={`${isCollapsed ? '' : 'mr-3'} h-5 w-5 text-gray-600 ${location.pathname === '/profile' ? 'text-white' : ''}`} />
@@ -247,9 +247,9 @@ const Sidebar = ({ isCollapsed, toggleSidebar, isMobile }) => {
     if (isMobile) toggleSidebar();
   }}
   className={`
-    flex items-center p-3 mx-2 rounded-md hover:bg-orange-600
+    flex items-center p-3 mx-2 rounded-md hover:bg-[#243158] hover:text-white
     ${isCollapsed ? 'justify-center' : 'px-4'}
-    ${location.pathname === '/logout' ? 'bg-orange-500 text-white' : ''}
+    ${location.pathname === '/logout' ? 'bg-[#243158] text-white' : ''}
   `}
 >
   <LogOut className={`${isCollapsed ? '' : 'mr-3'} h-5 w-5 text-gray-600 ${location.pathname === '/logout' ? 'text-white' : ''}`} />

@@ -68,51 +68,56 @@ const LiftForm = ({
 
   // Handle adding new dropdown option
   const handleAddOption = async (field) => {
-  const value = modalState[field].value.trim();
-  if (!value) {
-    toast.error(`Please enter a ${field.replace(/([A-Z])/g, ' $1').toLowerCase().trim()}.`);
-    return;
-  }
+    const value = modalState[field].value.trim();
+    if (!value) {
+      toast.error(`Please enter a ${field.replace(/([A-Z])/g, ' $1').toLowerCase().trim()}.`);
+      return;
+    }
 
-  try {
-    const apiEndpoints = {
-      brand: 'add-brand/',
-      floorID: 'add-floor-id/',
-      machineType: 'add-machine-type/',
-      liftType: 'add-lift-type/',
-      doorType: 'add-door-type/',
-      machineBrand: 'add-machine-brand/',
-      doorBrand: 'add-door-brand/',
-      controllerBrand: 'add-controller-brand/',
-      cabin: 'add-cabin/',
-    };
+    try {
+      const token = localStorage.getItem('access_token');
+      const apiEndpoints = {
+        brand: 'add-brand/',
+        floorID: 'add-floor-id/',
+        machineType: 'add-machine-type/',
+        liftType: 'add-lift-type/',
+        doorType: 'add-door-type/',
+        machineBrand: 'add-machine-brand/',
+        doorBrand: 'add-door-brand/',
+        controllerBrand: 'add-controller-brand/',
+        cabin: 'add-cabin/',
+      };
 
-    await axios.post(
-      `${apiBaseUrl}/auth/${apiEndpoints[field]}`,
-      { value },
-      { withCredentials: true }
-    );
+      await axios.post(
+        `${apiBaseUrl}/auth/${apiEndpoints[field]}`,
+        { value },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
-    // Update the form state with the new value
-    setNewLift(prev => ({ ...prev, [field]: value }));
+      // Update the form state with the new value
+      setNewLift(prev => ({ ...prev, [field]: value }));
 
-    // Close the modal
-    closeAddModal(field);
+      // Close the modal
+      closeAddModal(field);
 
-    // Show success message
-    toast.success(`${field.replace(/([A-Z])/g, ' $1').trim()} added successfully.`);
+      // Show success message
+      toast.success(`${field.replace(/([A-Z])/g, ' $1').trim()} added successfully.`);
 
-    // Trigger parent component to refresh options
-    onSubmitSuccess(); // This should trigger the parent to refetch all dropdown options
+      // Trigger parent component to refresh options
+      onSubmitSuccess();
 
-  } catch (error) {
-    console.error(`Error adding ${field}:`, error.response?.data || error);
-    toast.error(
-      error.response?.data?.error || 
-      `Failed to add ${field.replace(/([A-Z])/g, ' $1').toLowerCase().trim()}.`
-    );
-  }
-};
+    } catch (error) {
+      console.error(`Error adding ${field}:`, error.response?.data || error);
+      toast.error(
+        error.response?.data?.error || 
+        `Failed to add ${field.replace(/([A-Z])/g, ' $1').toLowerCase().trim()}.`
+      );
+    }
+  };
 
   // Handle form submission
   const handleSubmit = async () => {
@@ -125,6 +130,7 @@ const LiftForm = ({
     }
 
     try {
+      const token = localStorage.getItem('access_token');
       // Fetch all reference data to map values to IDs
       const [
         brands, 
@@ -137,15 +143,33 @@ const LiftForm = ({
         controllerBrands, 
         cabins
       ] = await Promise.all([
-        axios.get(`${apiBaseUrl}/auth/brands/`, { withCredentials: true }),
-        axios.get(`${apiBaseUrl}/auth/floor-ids/`, { withCredentials: true }),
-        axios.get(`${apiBaseUrl}/auth/lift-types/`, { withCredentials: true }),
-        axios.get(`${apiBaseUrl}/auth/machine-types/`, { withCredentials: true }),
-        axios.get(`${apiBaseUrl}/auth/machine-brands/`, { withCredentials: true }),
-        axios.get(`${apiBaseUrl}/auth/door-types/`, { withCredentials: true }),
-        axios.get(`${apiBaseUrl}/auth/door-brands/`, { withCredentials: true }),
-        axios.get(`${apiBaseUrl}/auth/controller-brands/`, { withCredentials: true }),
-        axios.get(`${apiBaseUrl}/auth/cabins/`, { withCredentials: true }),
+        axios.get(`${apiBaseUrl}/auth/brands/`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`${apiBaseUrl}/auth/floor-ids/`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`${apiBaseUrl}/auth/lift-types/`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`${apiBaseUrl}/auth/machine-types/`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`${apiBaseUrl}/auth/machine-brands/`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`${apiBaseUrl}/auth/door-types/`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`${apiBaseUrl}/auth/door-brands/`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`${apiBaseUrl}/auth/controller-brands/`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`${apiBaseUrl}/auth/cabins/`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
       ]);
 
       // Prepare lift data for API
@@ -173,14 +197,18 @@ const LiftForm = ({
         await axios.put(
           `${apiBaseUrl}/auth/edit_lift/${initialData.id}/`, 
           liftData, 
-          { withCredentials: true }
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
         );
         toast.success('Lift updated successfully.');
       } else {
         await axios.post(
           `${apiBaseUrl}/auth/add_lift/`, 
           liftData, 
-          { withCredentials: true }
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
         );
         toast.success('Lift created successfully.');
       }
@@ -202,7 +230,7 @@ const LiftForm = ({
       {/* Main Form Modal */}
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden">
         {/* Modal Header */}
-        <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-6">
+        <div className="bg-gradient-to-r from-[#2D3A6B] to-[#243158] p-6">
           <h2 className="text-2xl font-bold text-white">
             {isEdit ? 'Edit Lift' : 'Create New Lift'}
           </h2>
@@ -613,7 +641,7 @@ const LiftForm = ({
           </button>
           <button
             onClick={handleSubmit}
-            className="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg text-white font-medium hover:from-orange-600 hover:to-orange-700 transition-all duration-200 shadow-md"
+            className="px-6 py-2.5 bg-gradient-to-r from-[#2D3A6B] to-[#243158] rounded-lg text-white font-medium hover:from-[#213066] hover:to-[#182755] transition-all duration-200 shadow-md"
           >
             {isEdit ? 'Update Lift' : 'Create Lift'}
           </button>
@@ -623,7 +651,7 @@ const LiftForm = ({
       {/* Secondary Modals for Adding Options */}
       {Object.entries(modalState).map(([field, { isOpen, value }]) => (
         isOpen && (
-          <div key={field} className="fixed inset-0  bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div key={field} className="fixed inset-0 bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">
                 Add New {field.replace(/([A-Z])/g, ' $1').trim()}

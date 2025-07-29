@@ -2,6 +2,78 @@ import React, { useState, useEffect } from 'react';
 import { Edit, MoreVertical, Plus, Search, ChevronDown, ChevronUp, Sliders, List, Trash2 } from 'lucide-react';
 import CustomerForm from '../Dashboard/Forms/CustomerForm';
 import { toast } from 'react-toastify';
+import axios from 'axios';
+
+const apiBaseUrl = import.meta.env.VITE_BASE_API;
+
+// Configure axios instance with interceptors
+const api = axios.create({
+  baseURL: apiBaseUrl,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Request interceptor to inject token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor to handle token refresh
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      try {
+        const refreshToken = localStorage.getItem('refresh_token');
+        const response = await axios.post(`${apiBaseUrl}/auth/refresh/`, {
+          refresh: refreshToken
+        });
+        
+        localStorage.setItem('access_token', response.data.access);
+        originalRequest.headers.Authorization = `Bearer ${response.data.access}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      }
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
+// API endpoints
+const customerApi = {
+  getCustomers: () => api.get('/sales/customer-list/'),
+  addCustomer: (data) => api.post('/sales/add-customer/', data),
+  editCustomer: (id, data) => api.put(`/sales/edit-customer/${id}/`, data),
+  deleteCustomer: (id) => api.delete(`/sales/delete-customer/${id}/`),
+};
+
+const dropdownApi = {
+  getRoutes: () => api.get('/sales/routes/'),
+  getBranches: () => api.get('/sales/branches/'),
+  getProvinceStates: () => api.get('/sales/province-states/'),
+  addRoute: (data) => api.post('/sales/add-route/', data),
+  addBranch: (data) => api.post('/sales/add-branch/', data),
+  addProvinceState: (data) => api.post('/sales/add-province-state/', data),
+};
 
 const CustomerRow = ({ 
   customer, 
@@ -9,7 +81,8 @@ const CustomerRow = ({
   expandedRow,
   toggleExpand,
   isSelected,
-  onSelect
+  onSelect,
+  onDelete
 }) => {
   return (
     <>
@@ -22,9 +95,9 @@ const CustomerRow = ({
             className="h-4 w-4 text-orange-500 focus:ring-orange-500 border-gray-300 rounded"
           />
         </td>
-        <td className="px-4 py-3 whitespace-nowrap">{customer.siteId}</td>
+        <td className="px-4 py-3 whitespace-nowrap">{customer.site_id}</td>
         <td className="px-4 py-3 hidden sm:table-cell whitespace-nowrap truncate max-w-[150px]">
-          {customer.siteName}
+          {customer.site_name}
         </td>
         
         <td className="px-4 py-3 sm:hidden text-right">
@@ -32,58 +105,55 @@ const CustomerRow = ({
             onClick={toggleExpand}
             className="text-orange-500 p-1 rounded-full hover:bg-orange-50"
           >
-            {expandedRow === customer.siteId ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            {expandedRow === customer.site_id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
           </button>
         </td>
         
         <td className="px-4 py-3 hidden md:table-cell whitespace-nowrap truncate max-w-[200px]">
-          {customer.siteAddress}
+          {customer.site_address}
         </td>
         <td className="px-4 py-3 hidden lg:table-cell whitespace-nowrap">{customer.mobile}</td>
         <td className="px-4 py-3 hidden sm:table-cell whitespace-nowrap">{customer.contracts}</td>
-        <td className="px-4 py-3 hidden md:table-cell whitespace-nowrap">{customer.noOfLifts}</td>
+        <td className="px-4 py-3 hidden md:table-cell whitespace-nowrap">{customer.no_of_lifts}</td>
         <td className="px-4 py-3 hidden lg:table-cell whitespace-nowrap">{customer.service}</td>
-        <td className="px-4 py-3 hidden xl:table-cell whitespace-nowrap">{customer.generatedTickets}</td>
+        <td className="px-4 py-3 hidden xl:table-cell whitespace-nowrap">{customer.generated_tickets}</td>
         <td className="px-4 py-3 hidden xl:table-cell whitespace-nowrap">{customer.invoices}</td>
         <td className="px-4 py-3 hidden md:table-cell whitespace-nowrap">{customer.routes}</td>
         
-      <td className="px-4 py-3 whitespace-nowrap flex justify-end space-x-2">
-        {/* Edit Button - No background color */}
-        <button 
-          onClick={() => onEdit(customer)}
-          className="text-orange-500 hover:text-orange-700 p-1 transition-colors"
-          title="Edit"
-        >
-          <Edit size={18} />
-        </button>
+        <td className="px-4 py-3 whitespace-nowrap flex justify-end space-x-2">
+          <button 
+            onClick={() => onEdit(customer)}
+            className="text-orange-500 hover:text-orange-700 p-1 transition-colors"
+            title="Edit"
+          >
+            <Edit size={18} />
+          </button>
 
-        {/* Delete Button with Lucide Trash2 icon */}
-        <button 
-          onClick={() => {
-            if (window.confirm('Are you sure you want to delete this customer?')) {
-              // Handle delete logic here
-              onDelete(customer.id);
-            }
-          }}
-          className="text-red-500 hover:text-red-700 p-1 transition-colors"
-          title="Delete"
-        >
-          <Trash2 size={18} />
-        </button>
-      </td>
+          <button 
+            onClick={() => {
+              if (window.confirm('Are you sure you want to delete this customer?')) {
+                onDelete(customer.id);
+              }
+            }}
+            className="text-red-500 hover:text-red-700 p-1 transition-colors"
+            title="Delete"
+          >
+            <Trash2 size={18} />
+          </button>
+        </td>
       </tr>
       
-      {expandedRow === customer.siteId && (
+      {expandedRow === customer.site_id && (
         <tr className="sm:hidden bg-gray-50">
           <td colSpan="100" className="px-4 py-3">
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div className="whitespace-nowrap">
                 <p className="font-medium text-gray-500">Site Name</p>
-                <p>{customer.siteName}</p>
+                <p>{customer.site_name}</p>
               </div>
               <div className="whitespace-nowrap">
                 <p className="font-medium text-gray-500">Address</p>
-                <p className="truncate">{customer.siteAddress}</p>
+                <p className="truncate">{customer.site_address}</p>
               </div>
               <div className="whitespace-nowrap">
                 <p className="font-medium text-gray-500">Mobile</p>
@@ -95,7 +165,7 @@ const CustomerRow = ({
               </div>
               <div className="whitespace-nowrap">
                 <p className="font-medium text-gray-500">No. of Lifts</p>
-                <p>{customer.noOfLifts}</p>
+                <p>{customer.no_of_lifts}</p>
               </div>
               <div className="whitespace-nowrap">
                 <p className="font-medium text-gray-500">Service</p>
@@ -103,7 +173,7 @@ const CustomerRow = ({
               </div>
               <div className="whitespace-nowrap">
                 <p className="font-medium text-gray-500">Tickets</p>
-                <p>{customer.generatedTickets}</p>
+                <p>{customer.generated_tickets}</p>
               </div>
               <div className="whitespace-nowrap">
                 <p className="font-medium text-gray-500">Invoices</p>
@@ -128,6 +198,9 @@ const Customers = () => {
   const [selectedCustomers, setSelectedCustomers] = useState([]);
   const [showBulkMenu, setShowBulkMenu] = useState(false);
   const [showThreeDotMenu, setShowThreeDotMenu] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
   const [filters, setFilters] = useState({
     routes: '',
     branch: '',
@@ -136,85 +209,58 @@ const Customers = () => {
     search: ''
   });
   
-  // Sample customer data
-  const sampleCustomers = [
-    {
-      id: "AL237",
-      siteId: "AL237",
-      siteName: "Mr.Elangovan",
-      siteAddress: "No:1/16,4th Main Road,Kodungaiyur, Chennai-600118",
-      email: "example@example.com",
-      phone: "9876543210",
-      mobile: "9876543210",
-      contracts: "2",
-      noOfLifts: "3",
-      service: "Monthly",
-      generatedTickets: "5",
-      invoices: "2",
-      routes: "Chennai",
-      officeAddress: "Same as above",
-      contactPersonName: "Mr. Elangovan",
-      designation: "Manager",
-      pinCode: "600118",
-      country: "India",
-      state: "Tamil Nadu",
-      city: "Chennai",
-      sector: "Residential",
-      branch: "Chennai",
-      gstNumber: "22AAAAA0000A1Z5",
-      panNumber: "AAAAA1234A",
-      handoverDate: "2023-01-01",
-      billingName: "Mr. Elangovan",
-      referenceId: "REF123",
-      jobNo: "JOB456"
-    },
-    {
-      id: "AL238",
-      siteId: "AL238",
-      siteName: "Tech Park",
-      siteAddress: "IT Highway, Bangalore-560001",
-      email: "tech@example.com",
-      phone: "9876543211",
-      mobile: "9876543211",
-      contracts: "3",
-      noOfLifts: "5",
-      service: "Quarterly",
-      generatedTickets: "8",
-      invoices: "3",
-      routes: "Bangalore",
-      officeAddress: "Tech Park Office",
-      contactPersonName: "Ms. Sharma",
-      designation: "Director",
-      pinCode: "560001",
-      country: "India",
-      state: "Karnataka",
-      city: "Bangalore",
-      sector: "Commercial",
-      branch: "Bangalore",
-      gstNumber: "22BBBBB0000B1Z5",
-      panNumber: "BBBBB1234B",
-      handoverDate: "2023-02-15",
-      billingName: "Tech Park Inc",
-      referenceId: "REF124",
-      jobNo: "JOB457"
-    }
-  ];
-
-  const [customers, setCustomers] = useState(sampleCustomers);
-  const [filteredCustomers, setFilteredCustomers] = useState(sampleCustomers);
-
+  const [customers, setCustomers] = useState([]);
+  const [filteredCustomers, setFilteredCustomers] = useState([]);
+  
   const [dropdownOptions, setDropdownOptions] = useState({
     countryOptions: ['India', 'USA', 'UK'],
-    stateOptions: ['Tamil Nadu', 'Karnataka', 'Maharashtra'],
-    cityOptions: ['Chennai', 'Bangalore', 'Mumbai'],
+    stateOptions: [],
+    cityOptions: [],
     sectorOptions: ['Residential', 'Commercial', 'Industrial'],
-    routesOptions: ['Chennai', 'Bangalore', 'Mumbai'],
-    branchOptions: ['Chennai', 'Bangalore', 'Mumbai'],
+    routesOptions: [],
+    branchOptions: [],
   });
 
-  const apiBaseUrl = 'https://your-api-endpoint.com/api';
+  // Fetch data with retry logic
+  const fetchData = async (retryCount = 3) => {
+    setIsLoading(true);
+    try {
+      const [customersRes, routesRes, branchesRes, statesRes] = await Promise.all([
+        customerApi.getCustomers(),
+        dropdownApi.getRoutes(),
+        dropdownApi.getBranches(),
+        dropdownApi.getProvinceStates()
+      ]);
+      
+      setCustomers(customersRes.data);
+      setFilteredCustomers(customersRes.data);
+      
+      setDropdownOptions(prev => ({
+        ...prev,
+        routesOptions: routesRes.data,
+        branchOptions: branchesRes.data,
+        stateOptions: statesRes.data
+      }));
+      
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      if (retryCount > 0) {
+        console.log(`Retrying... (${retryCount} attempts left)`);
+        setTimeout(() => fetchData(retryCount - 1), 1000);
+      } else {
+        setError(err.message);
+        toast.error(err.response?.data?.message || 'Failed to fetch data');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  // Apply filters whenever filters change
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  // Apply filters whenever filters or customers change
   useEffect(() => {
     const filtered = customers.filter(customer => {
       return (
@@ -223,8 +269,8 @@ const Customers = () => {
         (filters.city === '' || customer.city === filters.city) &&
         (filters.sector === '' || customer.sector === filters.sector) &&
         (filters.search === '' || 
-          customer.siteName.toLowerCase().includes(filters.search.toLowerCase()) ||
-          customer.siteId.toLowerCase().includes(filters.search.toLowerCase()) ||
+          customer.site_name.toLowerCase().includes(filters.search.toLowerCase()) ||
+          customer.site_id.toLowerCase().includes(filters.search.toLowerCase()) ||
           customer.mobile.includes(filters.search))
       );
     });
@@ -241,7 +287,6 @@ const Customers = () => {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    // Filtering is handled automatically by the useEffect
   };
 
   const resetFilters = () => {
@@ -299,17 +344,35 @@ const Customers = () => {
     setShowForm(true);
   };
 
-  const handleFormSubmitSuccess = (newCustomer) => {
-    if (editData) {
-      setCustomers(customers.map(c => 
-        c.id === editData.id ? { ...c, ...newCustomer } : c
-      ));
-      toast.success('Customer updated successfully');
-    } else {
-      setCustomers([...customers, { ...newCustomer, id: `CUST${Date.now()}` }]);
-      toast.success('Customer added successfully');
+  const handleFormSubmitSuccess = async (customerData) => {
+    try {
+      if (editData) {
+        const response = await customerApi.editCustomer(editData.id, customerData);
+        setCustomers(customers.map(c => 
+          c.id === editData.id ? response.data : c
+        ));
+        toast.success('Customer updated successfully');
+      } else {
+        const response = await customerApi.addCustomer(customerData);
+        setCustomers([...customers, response.data]);
+        toast.success('Customer added successfully');
+      }
+      setShowForm(false);
+    } catch (err) {
+      console.error('Error submitting form:', err);
+      toast.error(`Error: ${err.response?.data?.message || err.message}`);
     }
-    setShowForm(false);
+  };
+
+  const handleDeleteCustomer = async (id) => {
+    try {
+      await customerApi.deleteCustomer(id);
+      setCustomers(customers.filter(customer => customer.id !== id));
+      toast.success('Customer deleted successfully');
+    } catch (err) {
+      console.error('Error deleting customer:', err);
+      toast.error(`Error: ${err.response?.data?.message || err.message}`);
+    }
   };
 
   const handleCloseForm = () => {
@@ -317,16 +380,46 @@ const Customers = () => {
     setEditData(null);
   };
 
-  const updateDropdownOptions = (field, newValue) => {
-    setDropdownOptions(prev => ({
-      ...prev,
-      [`${field}Options`]: [...prev[`${field}Options`], newValue]
-    }));
+  const updateDropdownOptions = async (field, newValue) => {
+    try {
+      let response;
+      switch (field) {
+        case 'routes':
+          response = await dropdownApi.addRoute({ name: newValue });
+          break;
+        case 'branch':
+          response = await dropdownApi.addBranch({ name: newValue });
+          break;
+        case 'state':
+          response = await dropdownApi.addProvinceState({ name: newValue });
+          break;
+        default:
+          return;
+      }
+      
+      setDropdownOptions(prev => ({
+        ...prev,
+        [`${field}Options`]: [...prev[`${field}Options`], response.data]
+      }));
+      
+      return response.data;
+    } catch (err) {
+      toast.error(`Error adding ${field}: ${err.response?.data?.message || err.message}`);
+      throw err;
+    }
   };
 
   const toggleExpandRow = (siteId) => {
     setExpandedRow(expandedRow === siteId ? null : siteId);
   };
+
+  if (isLoading) {
+    return <div className="container mx-auto p-6 text-center">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="container mx-auto p-6 text-center text-red-500">Error: {error}</div>;
+  }
 
   return (
     <div className="container mx-auto p-4 sm:p-6">
@@ -334,7 +427,7 @@ const Customers = () => {
       <div className="mb-4 sm:mb-6">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Customers</h1>
         
-        {/* Action Buttons Row - In specified order */}
+        {/* Action Buttons Row */}
         <div className="flex flex-wrap justify-end gap-2 mt-2 sm:gap-3 sm:flex-nowrap">
           {/* Bulk Assign Branch */}
           <button 
@@ -521,9 +614,10 @@ const Customers = () => {
                     customer={customer}
                     onEdit={handleEditCustomer}
                     expandedRow={expandedRow}
-                    toggleExpand={() => toggleExpandRow(customer.siteId)}
+                    toggleExpand={() => toggleExpandRow(customer.site_id)}
                     isSelected={selectedCustomers.includes(customer.id)}
                     onSelect={() => toggleCustomerSelection(customer.id)}
+                    onDelete={handleDeleteCustomer}
                   />
                 ))}
               </tbody>

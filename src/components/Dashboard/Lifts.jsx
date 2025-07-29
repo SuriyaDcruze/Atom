@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import LiftForm from '../Dashboard/Forms/LiftForm';
-import { Edit,Pencil, Trash2,RefreshCw,Search,ChevronDown,MoreVertical,Download,Upload,Import } from 'lucide-react';
+import { Edit, Pencil, Trash2, RefreshCw, Search, ChevronDown, MoreVertical, Download, Upload, Import } from 'lucide-react';
 
 const apiBaseUrl = import.meta.env.VITE_BASE_API;
 
@@ -49,9 +49,10 @@ const Lifts = () => {
   const fetchData = async (retryCount = 3) => {
     setLoading(true);
     try {
+      const token = localStorage.getItem('access_token');
       // Fetch lifts data
-      const liftsResponse = await axios.get(`${apiBaseUrl}/auth/lift_list/`, { 
-        withCredentials: true 
+      const liftsResponse = await axios.get(`${apiBaseUrl}/auth/lift_list/`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
       
       const liftsData = liftsResponse.data.map(lift => ({
@@ -93,15 +94,15 @@ const Lifts = () => {
         controllerBrands, 
         cabins
       ] = await Promise.all([
-        axios.get(`${apiBaseUrl}/auth/brands/`, { withCredentials: true }),
-        axios.get(`${apiBaseUrl}/auth/floor-ids/`, { withCredentials: true }),
-        axios.get(`${apiBaseUrl}/auth/machine-types/`, { withCredentials: true }),
-        axios.get(`${apiBaseUrl}/auth/lift-types/`, { withCredentials: true }),
-        axios.get(`${apiBaseUrl}/auth/door-types/`, { withCredentials: true }),
-        axios.get(`${apiBaseUrl}/auth/machine-brands/`, { withCredentials: true }),
-        axios.get(`${apiBaseUrl}/auth/door-brands/`, { withCredentials: true }),
-        axios.get(`${apiBaseUrl}/auth/controller-brands/`, { withCredentials: true }),
-        axios.get(`${apiBaseUrl}/auth/cabins/`, { withCredentials: true }),
+        axios.get(`${apiBaseUrl}/auth/brands/`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${apiBaseUrl}/auth/floor-ids/`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${apiBaseUrl}/auth/machine-types/`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${apiBaseUrl}/auth/lift-types/`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${apiBaseUrl}/auth/door-types/`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${apiBaseUrl}/auth/machine-brands/`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${apiBaseUrl}/auth/door-brands/`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${apiBaseUrl}/auth/controller-brands/`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${apiBaseUrl}/auth/cabins/`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
 
       // Set dropdown options
@@ -177,8 +178,9 @@ const Lifts = () => {
   const handleDeleteLift = async (id) => {
     if (window.confirm('Are you sure you want to delete this lift?')) {
       try {
-        await axios.delete(`${apiBaseUrl}/auth/delete_lift/${id}/`, { 
-          withCredentials: true 
+        const token = localStorage.getItem('access_token');
+        await axios.delete(`${apiBaseUrl}/auth/delete_lift/${id}/`, {
+          headers: { Authorization: `Bearer ${token}` },
         });
         setLifts(prev => prev.filter(lift => lift.id !== id));
         setSelectedLifts(prev => prev.filter(liftId => liftId !== id));
@@ -200,10 +202,11 @@ const Lifts = () => {
 
     if (window.confirm(`Are you sure you want to delete ${selectedLifts.length} selected lifts?`)) {
       try {
+        const token = localStorage.getItem('access_token');
         await Promise.all(
           selectedLifts.map(id => 
-            axios.delete(`${apiBaseUrl}/auth/delete_lift/${id}/`, { 
-              withCredentials: true 
+            axios.delete(`${apiBaseUrl}/auth/delete_lift/${id}/`, {
+              headers: { Authorization: `Bearer ${token}` },
             })
           )
         );
@@ -214,6 +217,34 @@ const Lifts = () => {
         console.error('Error deleting lifts:', error);
         toast.error(error.response?.data?.error || 'Failed to delete selected lifts.');
       }
+    }
+  };
+
+  // Handle export to Excel
+  const handleExport = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await axios.get(`${apiBaseUrl}/auth/export-lifts/`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob', // Important for handling binary data
+      });
+
+      // Create a blob URL and trigger download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'lifts_export.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast.success('Lifts exported successfully.');
+      document.getElementById('options-dropdown').classList.add('hidden');
+    } catch (error) {
+      console.error('Error exporting lifts:', error);
+      toast.error(error.response?.data?.error || 'Failed to export lifts.');
+      document.getElementById('options-dropdown').classList.add('hidden');
     }
   };
 
@@ -242,7 +273,7 @@ const Lifts = () => {
   const currentLifts = filteredLifts.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredLifts.length / itemsPerPage);
 
-  //dropdown for bulk actions,3dot menu
+  // Dropdown for bulk actions, 3-dot menu
   useEffect(() => {
     const handleClickOutside = (event) => {
       const bulkActions = document.getElementById('bulk-actions-dropdown');
@@ -275,9 +306,9 @@ const Lifts = () => {
             <div>
               <button
                 type="button"
-                className={`inline-flex items-center justify-center rounded-md px-3 md:px-4 py-2 text-sm md:text-base font-medium focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 ${
+                className={`inline-flex items-center justify-center rounded-md px-3 md:px-4 py-2 text-sm md:text-base font-medium focus:outline-none focus:ring-2 focus:ring-[#243158] focus:ring-offset-2 ${
                   selectedLifts.length > 0
-                    ? 'bg-orange-500 text-white hover:bg-orange-600'
+                    ? 'bg-[#243158] text-white hover:bg-[#243158]'
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                 }`}
                 id="bulk-actions-menu"
@@ -323,7 +354,7 @@ const Lifts = () => {
             <div>
               <button
                 type="button"
-                className="inline-flex items-center rounded-md p-2 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+                className="inline-flex items-center rounded-md p-2 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#243158] focus:ring-offset-2"
                 id="options-menu"
                 aria-expanded="true"
                 aria-haspopup="true"
@@ -349,10 +380,7 @@ const Lifts = () => {
                 <button
                   className="flex w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                   role="menuitem"
-                  onClick={() => {
-                    // Handle export
-                    document.getElementById('options-dropdown').classList.add('hidden');
-                  }}
+                  onClick={handleExport}
                 >
                   <Download className="mr-1 h-5 w-5 text-gray-400" />
                   Export
@@ -386,7 +414,7 @@ const Lifts = () => {
           {/* Create New Lift Button */}
           <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="bg-orange-500 text-white px-3 md:px-4 py-2 rounded-lg hover:bg-orange-600 transition duration-200 text-sm md:text-base"
+            className="bg-[#243158] text-white px-3 md:px-4 py-2 rounded-lg hover:bg-[#111520] transition duration-200 text-sm md:text-base"
           >
             Create New Lift
           </button>
@@ -402,7 +430,7 @@ const Lifts = () => {
               name="doorType" 
               value={filters.doorType} 
               onChange={handleFilterChange}
-              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm md:text-base"
+              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-[#243158] text-sm md:text-base"
             >
               <option value="ALL">All Door Types</option>
               {doorTypeOptions.map(option => (
@@ -417,7 +445,7 @@ const Lifts = () => {
               name="liftType" 
               value={filters.liftType} 
               onChange={handleFilterChange}
-              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm md:text-base"
+              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-[#243158] text-sm md:text-base"
             >
               <option value="ALL">All Lift Types</option>
               {liftTypeOptions.map(option => (
@@ -432,7 +460,7 @@ const Lifts = () => {
               name="machineType" 
               value={filters.machineType} 
               onChange={handleFilterChange}
-              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm md:text-base"
+              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-[#243158] text-sm md:text-base"
             >
               <option value="ALL">All Machine Types</option>
               {machineTypeOptions.map(option => (
@@ -447,7 +475,7 @@ const Lifts = () => {
               name="floorID" 
               value={filters.floorID} 
               onChange={handleFilterChange}
-              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm md:text-base"
+              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-[#243158] text-sm md:text-base"
             >
               <option value="ALL">All Floors</option>
               {floorOptions.map(option => (
@@ -462,7 +490,7 @@ const Lifts = () => {
               name="brand" 
               value={filters.brand} 
               onChange={handleFilterChange}
-              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm md:text-base"
+              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-[#243158] text-sm md:text-base"
             >
               <option value="ALL">All Brands</option>
               {brandOptions.map(option => (
@@ -477,7 +505,7 @@ const Lifts = () => {
               name="load" 
               value={filters.load} 
               onChange={handleFilterChange}
-              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm md:text-base"
+              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-[#243158] text-sm md:text-base"
             >
               <option value="ALL">All Loads</option>
               {[...new Set(lifts.map(lift => lift.load.toString()))].map(option => (
@@ -492,7 +520,7 @@ const Lifts = () => {
               name="noOfPassengers" 
               value={filters.noOfPassengers} 
               onChange={handleFilterChange}
-              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm md:text-base"
+              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-[#243158] text-sm md:text-base"
             >
               <option value="ALL">All Passengers</option>
               {[...new Set(lifts.map(lift => lift.noOfPassengers))].map(option => (
@@ -507,7 +535,7 @@ const Lifts = () => {
               name="model" 
               value={filters.model} 
               onChange={handleFilterChange}
-              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm md:text-base"
+              className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-[#243158] text-sm md:text-base"
             >
               <option value="ALL">All Models</option>
               {modelOptions.map(option => (
@@ -526,7 +554,7 @@ const Lifts = () => {
             </button>
             <button
               onClick={() => setCurrentPage(1)}
-              className="flex-1 bg-orange-500 text-white px-3 md:px-4 py-2 rounded-lg hover:bg-orange-600 transition duration-200 text-sm md:text-base flex items-center justify-center"
+              className="flex-1 bg-[#243158] text-white px-3 md:px-4 py-2 rounded-lg hover:bg-[#0f131d] transition duration-200 text-sm md:text-base flex items-center justify-center"
             >
               <Search className="w-4 h-4 mr-1" />
               <span>Search</span>
@@ -546,7 +574,7 @@ const Lifts = () => {
                     type="checkbox" 
                     checked={selectedLifts.length > 0 && selectedLifts.length === currentLifts.length}
                     onChange={handleSelectAll}
-                    className="h-4 w-4 text-orange-500 rounded focus:ring-orange-500 border-gray-300"
+                    className="h-4 w-4 text-[#243158] rounded focus:ring-[#243158] border-gray-300"
                   />
                 </th>
                 <th className="p-3 lg:p-4 text-left">ID</th>
@@ -567,7 +595,7 @@ const Lifts = () => {
                 <tr>
                   <td colSpan="12" className="text-center p-4">
                     <div className="flex justify-center items-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#243158]"></div>
                     </div>
                   </td>
                 </tr>
@@ -579,7 +607,7 @@ const Lifts = () => {
                         type="checkbox" 
                         checked={selectedLifts.includes(lift.id)}
                         onChange={() => handleSelectLift(lift.id)}
-                        className="h-4 w-4 text-orange-500 rounded focus:ring-orange-500 border-gray-300"
+                        className="h-4 w-4 text-[#243158] rounded focus:ring-[#243158] border-gray-300"
                       />
                     </td>
                     <td className="p-3 lg:p-4 text-gray-800">{lift.id}</td>
@@ -628,7 +656,7 @@ const Lifts = () => {
           <span className="text-sm md:text-base mb-2 md:mb-0">
             Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredLifts.length)} of {filteredLifts.length}
             {selectedLifts.length > 0 && (
-              <span className="ml-2 text-orange-500">
+              <span className="ml-2 text-[#243158]">
                 ({selectedLifts.length} selected)
               </span>
             )}
@@ -656,7 +684,7 @@ const Lifts = () => {
       <div className="md:hidden space-y-3">
         {loading ? (
           <div className="flex justify-center items-center py-8 bg-white rounded-lg shadow">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#243158]"></div>
           </div>
         ) : currentLifts.length > 0 ? (
           currentLifts.map(lift => (
@@ -667,7 +695,7 @@ const Lifts = () => {
                     type="checkbox" 
                     checked={selectedLifts.includes(lift.id)}
                     onChange={() => handleSelectLift(lift.id)}
-                    className="h-4 w-4 text-orange-500 rounded focus:ring-orange-500 border-gray-300 mr-2"
+                    className="h-4 w-4 text-[#243158] rounded focus:ring-[#243158] border-gray-300 mr-2"
                   />
                   <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-gray-800 text-lg truncate">{lift.liftCode}</h3>
@@ -682,7 +710,7 @@ const Lifts = () => {
                     className="text-blue-500 hover:text-blue-700 p-1"
                     title="Edit"
                   >
-                    <Edit className="w-5 h-5" />
+                    <Edit principalement className="w-5 h-5" />
                   </button>
                   <button
                     onClick={() => handleDeleteLift(lift.id)}
@@ -724,7 +752,7 @@ const Lifts = () => {
           <span className="text-sm sm:text-base mb-2 xs:mb-0">
             Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredLifts.length)} of {filteredLifts.length}
             {selectedLifts.length > 0 && (
-              <span className="ml-2 text-orange-500">
+              <span className="ml-2 text-[#243158]">
                 ({selectedLifts.length} selected)
               </span>
             )}
@@ -749,59 +777,59 @@ const Lifts = () => {
       </div>
 
       {/* Lift Form Modal */}
-{(isCreateModalOpen || isEditModalOpen) && (
-  <LiftForm
-    isEdit={isEditModalOpen}
-    initialData={currentLift}
-    onClose={() => {
-      setIsCreateModalOpen(false);
-      setIsEditModalOpen(false);
-      setCurrentLift(null);
-    }}
-    onSubmitSuccess={(message) => {
-      fetchData(); // Refresh the data
-      toast.success(message || (isEditModalOpen ? 'Lift updated successfully!' : 'Lift created successfully!'), {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
-    }}
-    onSubmitError={(error) => {
-      toast.error(error || (isEditModalOpen ? 'Failed to update lift' : 'Failed to create lift'), {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
-    }}
-    apiBaseUrl={apiBaseUrl}
-    dropdownOptions={{
-      brandOptions,
-      floorOptions,
-      machineTypeOptions,
-      liftTypeOptions,
-      doorTypeOptions,
-      machineBrandOptions,
-      doorBrandOptions,
-      controllerBrandOptions,
-      cabinOptions,
-      setBrandOptions,
-      setFloorOptions,
-      setMachineTypeOptions,
-      setLiftTypeOptions,
-      setDoorTypeOptions,
-      setMachineBrandOptions,
-      setDoorBrandOptions,
-      setControllerBrandOptions,
-      setCabinOptions,
-    }}
-  />
-)}
+      {(isCreateModalOpen || isEditModalOpen) && (
+        <LiftForm
+          isEdit={isEditModalOpen}
+          initialData={currentLift}
+          onClose={() => {
+            setIsCreateModalOpen(false);
+            setIsEditModalOpen(false);
+            setCurrentLift(null);
+          }}
+          onSubmitSuccess={(message) => {
+            fetchData(); // Refresh the data
+            toast.success(message || (isEditModalOpen ? 'Lift updated successfully!' : 'Lift created successfully!'), {
+              position: "top-right",
+              autoClose: 3000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+            });
+          }}
+          onSubmitError={(error) => {
+            toast.error(error || (isEditModalOpen ? 'Failed to update lift' : 'Failed to create lift'), {
+              position: "top-right",
+              autoClose: 3000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+            });
+          }}
+          apiBaseUrl={apiBaseUrl}
+          dropdownOptions={{
+            brandOptions,
+            floorOptions,
+            machineTypeOptions,
+            liftTypeOptions,
+            doorTypeOptions,
+            machineBrandOptions,
+            doorBrandOptions,
+            controllerBrandOptions,
+            cabinOptions,
+            setBrandOptions,
+            setFloorOptions,
+            setMachineTypeOptions,
+            setLiftTypeOptions,
+            setDoorTypeOptions,
+            setMachineBrandOptions,
+            setDoorBrandOptions,
+            setControllerBrandOptions,
+            setCabinOptions,
+          }}
+        />
+      )}
     </div>
   );
 };

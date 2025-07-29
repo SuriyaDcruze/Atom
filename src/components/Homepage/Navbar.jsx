@@ -53,11 +53,11 @@ const Navbar = () => {
 
           {/* Right Side Buttons */}
           <div className="flex items-center space-x-4">
-            <a href="signup" className="text-gray-800 hover:text-gray-900 border rounded-lg p-2">
+            <a href="login" className="text-gray-800 hover:text-gray-900 border rounded-lg p-2">
               Sign In
             </a>
             <a 
-              href="login" 
+              href="signup" 
               className="bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 transition-colors"
             >
               Create an Account

@@ -48,10 +48,10 @@ const CustomerLicense = () => {
         <select className="border border-gray-300 p-2 md:p-3 rounded-lg w-full md:w-1/4 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm md:text-base">
           <option>ALL</option>
         </select>
-        <button className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-2 md:px-6 md:py-3 rounded-lg shadow-lg hover:from-orange-600 hover:to-orange-700 transition duration-300 w-full md:w-auto text-sm md:text-base">
+        <button className="bg-gradient-to-r from-[#2D3A6B] to-[#243158] text-white px-4 py-2 md:px-6 md:py-3 rounded-lg shadow-lg hover:from-[#213066] hover:to-[#182755] transition duration-300 w-full md:w-auto text-sm md:text-base">
           Search
         </button>
-        <button className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-2 md:px-6 md:py-3 rounded-lg shadow-lg hover:from-orange-600 hover:to-orange-700 transition duration-300 w-full md:w-auto text-sm md:text-base">
+        <button className="bg-gradient-to-r from-[#2D3A6B] to-[#243158] text-white px-4 py-2 md:px-6 md:py-3 rounded-lg shadow-lg hover:from-[#213066] hover:to-[#182755] transition duration-300 w-full md:w-auto text-sm md:text-base">
           Export
         </button>
       </div>
@@ -75,7 +75,7 @@ const CustomerLicense = () => {
                 <td className="border-b border-gray-200 p-4 text-gray-700">{item.lifts}</td>
                 <td className="border-b border-gray-200 p-4 text-gray-800 whitespace-nowrap">{item.licenseNo}</td>
                 <td className="border-b border-gray-200 p-4 text-gray-800 whitespace-nowrap">{item.period}</td>
-                <td className="border-b border-gray-200 p-4 text-orange-500 hover:text-orange-700 cursor-pointer whitespace-nowrap">{item.attachment}</td>
+                <td className="border-b border-gray-200 p-4 text-[#213066] hover:text-[#213066] cursor-pointer whitespace-nowrap">{item.attachment}</td>
               </tr>
             ))}
           </tbody>

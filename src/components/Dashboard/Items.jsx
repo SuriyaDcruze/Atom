@@ -38,7 +38,7 @@ const Items = () => {
         <div className="space-x-4">
           <button
             onClick={() => setShowModal(true)}
-            className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition duration-200 w-full md:w-auto"
+            className="bg-[#243158] text-white px-4 py-2 rounded-lg hover:bg-[#141929] transition duration-200 w-full md:w-auto"
             aria-label="New Item"
           >
             New Item
