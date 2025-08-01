@@ -6,7 +6,6 @@ import axios from 'axios';
 
 const apiBaseUrl = import.meta.env.VITE_BASE_API;
 
-// Configure axios instance with interceptors
 const api = axios.create({
   baseURL: apiBaseUrl,
   headers: {
@@ -14,7 +13,6 @@ const api = axios.create({
   },
 });
 
-// Request interceptor to inject token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('access_token');
@@ -28,7 +26,6 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle token refresh
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -58,7 +55,6 @@ api.interceptors.response.use(
   }
 );
 
-// API endpoints
 const customerApi = {
   getCustomers: () => api.get('/sales/customer-list/'),
   addCustomer: (data) => api.post('/sales/add-customer/', data),
@@ -112,18 +108,20 @@ const CustomerRow = ({
         <td className="px-4 py-3 hidden md:table-cell whitespace-nowrap truncate max-w-[200px]">
           {customer.site_address}
         </td>
-        <td className="px-4 py-3 hidden lg:table-cell whitespace-nowrap">{customer.mobile}</td>
-        <td className="px-4 py-3 hidden sm:table-cell whitespace-nowrap">{customer.contracts}</td>
-        <td className="px-4 py-3 hidden md:table-cell whitespace-nowrap">{customer.no_of_lifts}</td>
-        <td className="px-4 py-3 hidden lg:table-cell whitespace-nowrap">{customer.service}</td>
-        <td className="px-4 py-3 hidden xl:table-cell whitespace-nowrap">{customer.generated_tickets}</td>
-        <td className="px-4 py-3 hidden xl:table-cell whitespace-nowrap">{customer.invoices}</td>
-        <td className="px-4 py-3 hidden md:table-cell whitespace-nowrap">{customer.routes}</td>
+        <td className="px-4 py-3 hidden lg:table-cell whitespace-nowrap">{customer.phone || 'N/A'}</td>
+        <td className="px-4 py-3 hidden sm:table-cell whitespace-nowrap">{customer.contracts || 'N/A'}</td>
+        <td className="px-4 py-3 hidden md:table-cell whitespace-nowrap">{customer.no_of_lifts || 'N/A'}</td>
+        <td className="px-4 py-3 hidden lg:table-cell whitespace-nowrap">{customer.service || 'N/A'}</td>
+        <td className="px-4 py-3 hidden xl:table-cell whitespace-nowrap">{customer.generated_tickets || 'N/A'}</td>
+        <td className="px-4 py-3 hidden xl:table-cell whitespace-nowrap">{customer.invoices || 'N/A'}</td>
+        <td className="px-4 py-3 hidden md:table-cell whitespace-nowrap">
+          {customer.routes_value || 'N/A'}
+        </td>
         
         <td className="px-4 py-3 whitespace-nowrap flex justify-end space-x-2">
           <button 
             onClick={() => onEdit(customer)}
-            className="text-orange-500 hover:text-orange-700 p-1 transition-colors"
+            className="text-blue-500 hover:text-blue-700 p-1 transition-colors"
             title="Edit"
           >
             <Edit size={18} />
@@ -147,42 +145,22 @@ const CustomerRow = ({
         <tr className="sm:hidden bg-gray-50">
           <td colSpan="100" className="px-4 py-3">
             <div className="grid grid-cols-2 gap-2 text-sm">
-              <div className="whitespace-nowrap">
-                <p className="font-medium text-gray-500">Site Name</p>
-                <p>{customer.site_name}</p>
-              </div>
-              <div className="whitespace-nowrap">
-                <p className="font-medium text-gray-500">Address</p>
-                <p className="truncate">{customer.site_address}</p>
-              </div>
-              <div className="whitespace-nowrap">
-                <p className="font-medium text-gray-500">Mobile</p>
-                <p>{customer.mobile}</p>
-              </div>
-              <div className="whitespace-nowrap">
-                <p className="font-medium text-gray-500">Contracts</p>
-                <p>{customer.contracts}</p>
-              </div>
-              <div className="whitespace-nowrap">
-                <p className="font-medium text-gray-500">No. of Lifts</p>
-                <p>{customer.no_of_lifts}</p>
-              </div>
-              <div className="whitespace-nowrap">
-                <p className="font-medium text-gray-500">Service</p>
-                <p>{customer.service}</p>
-              </div>
-              <div className="whitespace-nowrap">
-                <p className="font-medium text-gray-500">Tickets</p>
-                <p>{customer.generated_tickets}</p>
-              </div>
-              <div className="whitespace-nowrap">
-                <p className="font-medium text-gray-500">Invoices</p>
-                <p>{customer.invoices}</p>
-              </div>
-              <div className="whitespace-nowrap">
-                <p className="font-medium text-gray-500">Routes</p>
-                <p>{customer.routes}</p>
-              </div>
+              {Object.entries({
+                'Site Name': customer.site_name || 'N/A',
+                'Address': customer.site_address || 'N/A',
+                'Mobile': customer.phone || 'N/A',
+                'Contracts': customer.contracts || 'N/A',
+                'No. of Lifts': customer.no_of_lifts || 'N/A',
+                'Service': customer.service || 'N/A',
+                'Tickets': customer.generated_tickets || 'N/A',
+                'Invoices': customer.invoices || 'N/A',
+                'Routes': customer.routes_value || 'N/A',
+              }).map(([label, value]) => (
+                <div key={label} className="whitespace-nowrap">
+                  <p className="font-medium text-gray-500">{label}</p>
+                  <p>{value}</p>
+                </div>
+              ))}
             </div>
           </td>
         </tr>
@@ -216,12 +194,18 @@ const Customers = () => {
     countryOptions: ['India', 'USA', 'UK'],
     stateOptions: [],
     cityOptions: [],
-    sectorOptions: ['Residential', 'Commercial', 'Industrial'],
+    sectorOptions: [
+      { value: 'government', label: 'Government' },
+      { value: 'private', label: 'Private' },
+    ],
     routesOptions: [],
     branchOptions: [],
   });
 
-  // Fetch data with retry logic
+  useEffect(() => {
+    console.log('showForm state changed:', showForm);
+  }, [showForm]);
+
   const fetchData = async (retryCount = 3) => {
     setIsLoading(true);
     try {
@@ -232,27 +216,68 @@ const Customers = () => {
         dropdownApi.getProvinceStates()
       ]);
       
-      setCustomers(customersRes.data);
-      setFilteredCustomers(customersRes.data);
+      console.log('API Responses:', {
+        customers: customersRes.data,
+        routes: routesRes.data,
+        branches: branchesRes.data,
+        states: statesRes.data
+      });
       
-      setDropdownOptions(prev => ({
-        ...prev,
-        routesOptions: routesRes.data,
-        branchOptions: branchesRes.data,
-        stateOptions: statesRes.data
-      }));
+      // Ensure customers data is an array, fallback to empty array if invalid
+      const customerData = Array.isArray(customersRes.data) ? customersRes.data : [];
+      setCustomers(customerData);
+      setFilteredCustomers(customerData);
+      
+      const normalizeOptions = (data) => {
+        if (!data || !Array.isArray(data)) {
+          console.warn('Invalid dropdown data:', data);
+          return [];
+        }
+        return data.map((item, index) => {
+          if (typeof item === 'string') {
+            return { value: item, label: item };
+          }
+          if (item.value && item.label) {
+            return item;
+          }
+          if (item.name) {
+            return { value: item.id || item.name, label: item.name };
+          }
+          return {
+            value: item.id || item.value || `option-${index}`,
+            label: item.value || item.name || item.id || `Option ${index}`,
+          };
+        });
+      };
+      
+      setDropdownOptions(prev => {
+        const newOptions = {
+          ...prev,
+          routesOptions: normalizeOptions(routesRes.data),
+          branchOptions: normalizeOptions(branchesRes.data),
+          stateOptions: normalizeOptions(statesRes.data),
+          sectorOptions: prev.sectorOptions
+        };
+        console.log('Updated dropdownOptions:', newOptions);
+        return newOptions;
+      });
       
     } catch (err) {
       console.error('Error fetching data:', err);
       if (retryCount > 0) {
-        console.log(`Retrying... (${retryCount} attempts left)`);
         setTimeout(() => fetchData(retryCount - 1), 1000);
       } else {
-        setError(err.message);
+        setError(err.message || 'Failed to fetch data');
         toast.error(err.response?.data?.message || 'Failed to fetch data');
+        // Set empty array as fallback to avoid undefined errors
+        setCustomers([]);
+        setFilteredCustomers([]);
       }
     } finally {
-      setIsLoading(false);
+      setTimeout(() => {
+        setIsLoading(false);
+        console.log('fetchData completed, isLoading set to false');
+      }, 500);
     }
   };
 
@@ -260,7 +285,6 @@ const Customers = () => {
     fetchData();
   }, []);
 
-  // Apply filters whenever filters or customers change
   useEffect(() => {
     const filtered = customers.filter(customer => {
       return (
@@ -269,12 +293,13 @@ const Customers = () => {
         (filters.city === '' || customer.city === filters.city) &&
         (filters.sector === '' || customer.sector === filters.sector) &&
         (filters.search === '' || 
-          customer.site_name.toLowerCase().includes(filters.search.toLowerCase()) ||
-          customer.site_id.toLowerCase().includes(filters.search.toLowerCase()) ||
-          customer.mobile.includes(filters.search))
+          customer.site_name?.toLowerCase().includes(filters.search.toLowerCase()) ||
+          customer.site_id?.toLowerCase().includes(filters.search.toLowerCase()) ||
+          customer.mobile?.includes(filters.search))
       );
     });
     setFilteredCustomers(filtered);
+    console.log('Filtered Customers:', filtered); // Debug log
   }, [filters, customers]);
 
   const handleFilterChange = (e) => {
@@ -299,7 +324,6 @@ const Customers = () => {
     });
   };
 
-  // Customer selection handlers
   const toggleCustomerSelection = (customerId) => {
     setSelectedCustomers(prev => 
       prev.includes(customerId)
@@ -309,14 +333,13 @@ const Customers = () => {
   };
 
   const selectAllCustomers = () => {
-    if (selectedCustomers.length === filteredCustomers.length) {
+    if (selectedCustomers.length === filteredCustomers.length && filteredCustomers.length > 0) {
       setSelectedCustomers([]);
     } else {
       setSelectedCustomers(filteredCustomers.map(c => c.id));
     }
   };
 
-  // Bulk action handlers
   const handleBulkAssignBranch = () => {
     if (selectedCustomers.length === 0) {
       toast.error('Please select at least one customer');
@@ -333,14 +356,42 @@ const Customers = () => {
     toast.success(`${action} performed on ${selectedCustomers.length} customers`);
   };
 
-  // Customer form handlers
   const handleAddNewCustomer = () => {
+    console.log('Add New Customer button clicked, isLoading:', isLoading);
+    if (isLoading) {
+      toast.warn('Please wait, data is still loading...');
+      return;
+    }
     setEditData(null);
     setShowForm(true);
+    console.log('setShowForm called, showForm should be true');
   };
 
   const handleEditCustomer = (customer) => {
-    setEditData(customer);
+    setEditData({
+      siteId: customer.site_id,
+      jobNo: customer.job_no || '',
+      siteName: customer.site_name || '',
+      siteAddress: customer.site_address || '',
+      email: customer.email || '',
+      phone: customer.phone || '',
+      mobile: customer.mobile || '',
+      officeAddress: customer.office_address || '',
+      contactPersonName: customer.contact_person_name || '',
+      designation: customer.designation || '',
+      pinCode: customer.pin_code || '',
+      country: customer.country || '',
+      state: customer.province_state || '',
+      city: customer.city || '',
+      sector: customer.sector || '',
+      routes: customer.routes || '',
+      branch: customer.branch || '',
+      gstNumber: customer.gst_number || '',
+      panNumber: customer.pan_number || '',
+      handoverDate: customer.handover_date || '',
+      billingName: customer.billing_name || '',
+      id: customer.id,
+    });
     setShowForm(true);
   };
 
@@ -349,18 +400,19 @@ const Customers = () => {
       if (editData) {
         const response = await customerApi.editCustomer(editData.id, customerData);
         setCustomers(customers.map(c => 
-          c.id === editData.id ? response.data : c
+          c.id === editData.id ? { ...response.data, site_id: response.data.site_id || customerData.site_id } : c
         ));
         toast.success('Customer updated successfully');
       } else {
         const response = await customerApi.addCustomer(customerData);
-        setCustomers([...customers, response.data]);
+        // Ensure the new customer is added to the state with the correct structure
+        setCustomers([...customers, { ...response.data, id: response.data.id, site_id: response.data.site_id || customerData.site_id }]);
         toast.success('Customer added successfully');
       }
       setShowForm(false);
     } catch (err) {
       console.error('Error submitting form:', err);
-      toast.error(`Error: ${err.response?.data?.message || err.message}`);
+      toast.error(`Error: ${err.response?.data?.message || JSON.stringify(err.response?.data) || err.message}`);
     }
   };
 
@@ -383,26 +435,35 @@ const Customers = () => {
   const updateDropdownOptions = async (field, newValue) => {
     try {
       let response;
+      const payload = { value: newValue };
+      
       switch (field) {
         case 'routes':
-          response = await dropdownApi.addRoute({ name: newValue });
+          response = await dropdownApi.addRoute(payload);
           break;
         case 'branch':
-          response = await dropdownApi.addBranch({ name: newValue });
+          response = await dropdownApi.addBranch(payload);
           break;
         case 'state':
-          response = await dropdownApi.addProvinceState({ name: newValue });
+          response = await dropdownApi.addProvinceState(payload);
           break;
         default:
-          return;
+          return Promise.reject(new Error('Invalid field'));
       }
+      
+      const newOption = typeof response.data === 'object'
+        ? { 
+            value: response.data.id || response.data.value || newValue, 
+            label: response.data.value || response.data.name || newValue 
+          }
+        : { value: response.data, label: response.data };
       
       setDropdownOptions(prev => ({
         ...prev,
-        [`${field}Options`]: [...prev[`${field}Options`], response.data]
+        [`${field}Options`]: [...prev[`${field}Options`], newOption]
       }));
       
-      return response.data;
+      return newOption;
     } catch (err) {
       toast.error(`Error adding ${field}: ${err.response?.data?.message || err.message}`);
       throw err;
@@ -411,6 +472,17 @@ const Customers = () => {
 
   const toggleExpandRow = (siteId) => {
     setExpandedRow(expandedRow === siteId ? null : siteId);
+  };
+
+  const renderDropdownOptions = (options) => {
+    return options.map((option, index) => (
+      <option 
+        key={`${option.value}-${index}`}
+        value={option.value}
+      >
+        {option.label}
+      </option>
+    ));
   };
 
   if (isLoading) {
@@ -429,7 +501,6 @@ const Customers = () => {
         
         {/* Action Buttons Row */}
         <div className="flex flex-wrap justify-end gap-2 mt-2 sm:gap-3 sm:flex-nowrap">
-          {/* Bulk Assign Branch */}
           <button 
             onClick={handleBulkAssignBranch}
             className="flex items-center bg-white text-gray-700 px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors text-sm sm:text-base"
@@ -439,7 +510,6 @@ const Customers = () => {
             <span className="sm:hidden">Assign</span>
           </button>
           
-          {/* Bulk Action Dropdown */}
           <div className="relative">
             <button 
               onClick={() => setShowBulkMenu(!showBulkMenu)}
@@ -453,13 +523,13 @@ const Customers = () => {
             {showBulkMenu && (
               <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200">
                 <div className="py-1">
-                  <button className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                  <button onClick={() => handleBulkAction('Export')} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                     Export Selected
                   </button>
-                  <button className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                  <button onClick={() => handleBulkAction('Delete')} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                     Delete Selected
                   </button>
-                  <button className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                  <button onClick={() => handleBulkAction('Status Update')} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                     Update Status
                   </button>
                 </div>
@@ -467,7 +537,6 @@ const Customers = () => {
             )}
           </div>
 
-          {/* Three Dot Menu Button */}
           <div className="relative">
             <button 
               onClick={() => setShowThreeDotMenu(!showThreeDotMenu)}
@@ -493,10 +562,12 @@ const Customers = () => {
             )}
           </div>
 
-          {/* Add New Customer */}
           <button 
-            onClick={handleAddNewCustomer}
-            className="flex items-center bg-orange-500 text-white px-3 py-2 rounded-lg shadow-md hover:bg-orange-600 transition-colors text-sm sm:text-base whitespace-nowrap"
+            onClick={() => {
+              console.log('Add New Customer button clicked');
+              handleAddNewCustomer();
+            }}
+            className="flex items-center bg-gradient-to-r from-[#2D3A6B] to-[#243158] text-white px-3 py-2 rounded-lg shadow-md hover:from-[#213066] hover:to-[#182755] transition-colors text-sm sm:text-base whitespace-nowrap"
           >
             <Plus size={16} className="mr-1 sm:mr-2" />
             <span className="hidden sm:inline">Add New Customer</span>
@@ -515,9 +586,7 @@ const Customers = () => {
             className="border p-2 rounded-lg shadow-sm focus:ring-2 focus:ring-orange-300 transition text-sm sm:text-base whitespace-nowrap"
           >
             <option value="">All Routes</option>
-            {dropdownOptions.routesOptions.map(route => (
-              <option key={route} value={route}>{route}</option>
-            ))}
+            {renderDropdownOptions(dropdownOptions.routesOptions)}
           </select>
           <select 
             name="branch"
@@ -526,9 +595,7 @@ const Customers = () => {
             className="border p-2 rounded-lg shadow-sm focus:ring-2 focus:ring-orange-300 transition text-sm sm:text-base whitespace-nowrap"
           >
             <option value="">All Branch</option>
-            {dropdownOptions.branchOptions.map(branch => (
-              <option key={branch} value={branch}>{branch}</option>
-            ))}
+            {renderDropdownOptions(dropdownOptions.branchOptions)}
           </select>
           <select 
             name="city"
@@ -537,9 +604,7 @@ const Customers = () => {
             className="border p-2 rounded-lg shadow-sm focus:ring-2 focus:ring-orange-300 transition text-sm sm:text-base whitespace-nowrap"
           >
             <option value="">All City</option>
-            {dropdownOptions.cityOptions.map(city => (
-              <option key={city} value={city}>{city}</option>
-            ))}
+            {renderDropdownOptions(dropdownOptions.cityOptions)}
           </select>
           <select 
             name="sector"
@@ -548,9 +613,7 @@ const Customers = () => {
             className="border p-2 rounded-lg shadow-sm focus:ring-2 focus:ring-orange-300 transition text-sm sm:text-base whitespace-nowrap"
           >
             <option value="">All Sector</option>
-            {dropdownOptions.sectorOptions.map(sector => (
-              <option key={sector} value={sector}>{sector}</option>
-            ))}
+            {renderDropdownOptions(dropdownOptions.sectorOptions)}
           </select>
           <div className="flex space-x-2">
             <input
@@ -563,7 +626,7 @@ const Customers = () => {
             />
             <button 
               type="submit"
-              className="bg-orange-500 text-white p-2 rounded-lg shadow-md hover:bg-orange-600 transition-colors flex items-center justify-center text-sm sm:text-base whitespace-nowrap"
+              className="bg-[#243158] text-white p-2 rounded-lg shadow-md hover:bg-[#182255] transition-colors flex items-center justify-center text-sm sm:text-base whitespace-nowrap"
             >
               <Search size={16} />
             </button>
@@ -608,18 +671,26 @@ const Customers = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredCustomers.map((customer) => (
-                  <CustomerRow 
-                    key={customer.id}
-                    customer={customer}
-                    onEdit={handleEditCustomer}
-                    expandedRow={expandedRow}
-                    toggleExpand={() => toggleExpandRow(customer.site_id)}
-                    isSelected={selectedCustomers.includes(customer.id)}
-                    onSelect={() => toggleCustomerSelection(customer.id)}
-                    onDelete={handleDeleteCustomer}
-                  />
-                ))}
+                {filteredCustomers.length > 0 ? (
+                  filteredCustomers.map((customer) => (
+                    <CustomerRow 
+                      key={customer.id}
+                      customer={customer}
+                      onEdit={handleEditCustomer}
+                      expandedRow={expandedRow}
+                      toggleExpand={() => toggleExpandRow(customer.site_id)}
+                      isSelected={selectedCustomers.includes(customer.id)}
+                      onSelect={() => toggleCustomerSelection(customer.id)}
+                      onDelete={handleDeleteCustomer}
+                    />
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="13" className="px-4 py-4 text-center text-gray-500">
+                      No customers found.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -635,13 +706,11 @@ const Customers = () => {
           onSubmitSuccess={handleFormSubmitSuccess}
           apiBaseUrl={apiBaseUrl}
           dropdownOptions={{
-            ...dropdownOptions,
-            setCountryOptions: (value) => updateDropdownOptions('country', value),
-            setStateOptions: (value) => updateDropdownOptions('state', value),
-            setCityOptions: (value) => updateDropdownOptions('city', value),
-            setSectorOptions: (value) => updateDropdownOptions('sector', value),
-            setRoutesOptions: (value) => updateDropdownOptions('routes', value),
-            setBranchOptions: (value) => updateDropdownOptions('branch', value),
+            stateOptions: dropdownOptions.stateOptions,
+            routesOptions: dropdownOptions.routesOptions,
+            branchOptions: dropdownOptions.branchOptions,
+            sectorOptions: dropdownOptions.sectorOptions,
+            onAddOption: updateDropdownOptions
           }}
         />
       )}

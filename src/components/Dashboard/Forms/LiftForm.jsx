@@ -234,7 +234,7 @@ const LiftForm = ({
           <h2 className="text-2xl font-bold text-white">
             {isEdit ? 'Edit Lift' : 'Create New Lift'}
           </h2>
-          <p className="text-orange-100">
+          <p className="text-white">
             Fill in all required fields (*) to {isEdit ? 'update' : 'add'} a lift
           </p>
         </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
@@ -12,7 +12,7 @@ const CustomerForm = ({
 }) => {
   // Form state
   const [formData, setFormData] = useState({
-    referenceId: '',
+    siteId: '',
     jobNo: '',
     siteName: '',
     siteAddress: '',
@@ -27,7 +27,7 @@ const CustomerForm = ({
     country: '',
     state: '',
     city: '',
-    sector: '',
+    sector: '', // Default to empty to ensure selection from dropdown
     routes: '',
     branch: '',
     gstNumber: '',
@@ -40,10 +40,26 @@ const CustomerForm = ({
   const [loading, setLoading] = useState(false);
   const [modalState, setModalState] = useState({
     state: { isOpen: false, value: '' },
-    city: { isOpen: false, value: '' },
     routes: { isOpen: false, value: '' },
     branch: { isOpen: false, value: '' },
   });
+
+  // Track which dropdown options are being added to prevent duplicate API calls
+  const [addingOptions, setAddingOptions] = useState({
+    state: false,
+    routes: false,
+    branch: false,
+  });
+
+  // Debug dropdownOptions prop
+  useEffect(() => {
+    console.log('CustomerForm received dropdownOptions:', dropdownOptions);
+  }, [dropdownOptions]);
+
+  // Debug formData changes
+  useEffect(() => {
+    console.log('Current formData:', formData);
+  }, [formData]);
 
   // Handle input changes
   const handleInputChange = (e) => {
@@ -72,10 +88,13 @@ const CustomerForm = ({
       ...prev, 
       [field]: { isOpen: false, value: '' } 
     }));
+    setAddingOptions(prev => ({ ...prev, [field]: false }));
   };
 
   // Handle adding new dropdown option
   const handleAddOption = async (field) => {
+    if (addingOptions[field]) return;
+
     const value = modalState[field].value.trim();
     if (!value) {
       toast.error(`Please enter a ${field.replace(/([A-Z])/g, ' $1').toLowerCase().trim()}.`);
@@ -83,35 +102,14 @@ const CustomerForm = ({
     }
 
     try {
+      setAddingOptions(prev => ({ ...prev, [field]: true }));
       setLoading(true);
-      const token = localStorage.getItem('access_token');
       
-      const apiEndpoints = {
-        state: 'add-province-state/',
-        city: 'add-city/',
-        routes: 'add-route/',
-        branch: 'add-branch/',
-      };
-
-      const response = await axios.post(
-        `${apiBaseUrl}/sales/${apiEndpoints[field]}`,
-        { value: value }, // Changed from { name: value } to { value: value }
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      // Update dropdown options in parent component
-      const setterName = `set${field.charAt(0).toUpperCase() + field.slice(1)}Options`;
-      if (dropdownOptions[setterName]) {
-        dropdownOptions[setterName](prev => [...prev, value]);
-      }
-
+      // Use the callback from parent instead of direct API call
+      const newOption = await dropdownOptions.onAddOption(field, value);
+      
       // Update form field with new value
-      setFormData(prev => ({ ...prev, [field]: value }));
+      setFormData(prev => ({ ...prev, [field]: newOption.value || newOption }));
       closeAddModal(field);
       toast.success(`${field.charAt(0).toUpperCase() + field.slice(1)} added successfully.`);
     } catch (error) {
@@ -122,22 +120,36 @@ const CustomerForm = ({
       );
     } finally {
       setLoading(false);
+      setAddingOptions(prev => ({ ...prev, [field]: false }));
     }
   };
 
   // Handle form submission
   const handleSubmit = async () => {
-    if (!formData.referenceId || !formData.siteName) {
-      toast.error('Please fill in all required fields.');
+    console.log('handleSubmit called, loading:', loading);
+    if (!formData.siteId || !formData.siteName || !formData.state) {
+      toast.error('Please fill in all required fields (Site ID, Site Name, State).');
+      return;
+    }
+
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      toast.error('Please log in to continue.');
+      window.location.href = '/login';
+      return;
+    }
+
+    // Validate sector
+    const validSectors = dropdownOptions.sectorOptions.map(opt => opt.value);
+    if (formData.sector && !validSectors.includes(formData.sector)) {
+      toast.error('Please select a valid sector from the dropdown.');
       return;
     }
 
     try {
       setLoading(true);
-      const token = localStorage.getItem('access_token');
-      
       const customerData = {
-        reference_id: formData.referenceId,
+        site_id: formData.siteId,
         job_no: formData.jobNo,
         site_name: formData.siteName,
         site_address: formData.siteAddress,
@@ -149,7 +161,7 @@ const CustomerForm = ({
         designation: formData.designation,
         pin_code: formData.pinCode,
         country: formData.country,
-        state: formData.state,
+        province_state: formData.state,
         city: formData.city,
         sector: formData.sector,
         routes: formData.routes,
@@ -160,9 +172,12 @@ const CustomerForm = ({
         billing_name: formData.billingName,
       };
 
+      console.log('Submitting customerData:', customerData);
+      console.log('Token:', token);
+
       if (isEdit) {
         await axios.put(
-          `${apiBaseUrl}/sales/edit-customer/${initialData.id}/`, 
+          `${apiBaseUrl}/sales/edit-customer/${initialData.id}/`,
           customerData,
           {
             headers: {
@@ -174,7 +189,7 @@ const CustomerForm = ({
         toast.success('Customer updated successfully.');
       } else {
         await axios.post(
-          `${apiBaseUrl}/sales/add-customer/`, 
+          `${apiBaseUrl}/sales/add-customer/`,
           customerData,
           {
             headers: {
@@ -186,16 +201,26 @@ const CustomerForm = ({
         toast.success('Customer created successfully.');
       }
 
-      onSubmitSuccess();
+      onSubmitSuccess(customerData); // Pass customerData to parent
       onClose();
     } catch (error) {
       console.error(`Error ${isEdit ? 'updating' : 'creating'} customer:`, error);
-      toast.error(
-        error.response?.data?.message || 
-        `Failed to ${isEdit ? 'update' : 'create'} customer.`
-      );
+      // Handle site_id uniqueness error specifically
+      if (error.response?.data?.site_id && Array.isArray(error.response.data.site_id)) {
+        const siteIdError = error.response.data.site_id[0];
+        if (siteIdError.toLowerCase().includes('site id already exists')) {
+          toast.error('A customer with this Site ID already exists. Please use a different Site ID.');
+        } else {
+          toast.error(siteIdError);
+        }
+      } else {
+        toast.error(
+          error.response?.data?.message || 
+          `Failed to ${isEdit ? 'update' : 'create'} customer. Please try again.`
+        );
+      }
     } finally {
-      setLoading(false);
+      setTimeout(() => setLoading(false), 500);
     }
   };
 
@@ -233,36 +258,52 @@ const CustomerForm = ({
   );
 
   // Render select field with add option
-  const renderSelectWithAdd = (name, label, options, required = false) => (
-    <div className="form-group mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        {label} {required && <span className="text-red-500">*</span>}
-      </label>
-      <div className="flex">
-        <select
-          name={name}
-          value={formData[name]}
-          onChange={handleInputChange}
-          className="flex-1 px-4 py-2 rounded-l-lg border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all appearance-none bg-white"
-          disabled={loading}
-          required={required}
-        >
-          <option value="">Select {label}</option>
-          {options?.map(option => (
-            <option key={option} value={option}>{option}</option>
-          ))}
-        </select>
-        <button
-          type="button"
-          onClick={() => openAddModal(name)}
-          className="bg-gray-100 px-3 rounded-r-lg border border-l-0 border-gray-300 hover:bg-gray-200 transition-all"
-          disabled={loading}
-        >
-          +
-        </button>
+  const renderSelectWithAdd = (name, label, options = [], required = false, showAddButton = true) => {
+    console.log(`Rendering ${name} options:`, options);
+    return (
+      <div className="form-group mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          {label} {required && <span className="text-red-500">*</span>}
+        </label>
+        <div className="flex">
+          <select
+            name={name}
+            value={formData[name]}
+            onChange={handleInputChange}
+            className="flex-1 px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all appearance-none bg-white"
+            disabled={loading}
+            required={required}
+          >
+            <option value="">Select {label}</option>
+            {options.length > 0 ? (
+              options.map((option, index) => {
+                const optionValue = typeof option === 'string' ? option : option.value;
+                const optionLabel = typeof option === 'string' ? option : option.label;
+                
+                return (
+                  <option key={`${name}-${optionValue}-${index}`} value={optionValue}>
+                    {optionLabel}
+                  </option>
+                );
+              })
+            ) : (
+              <option value="" disabled>No options available</option>
+            )}
+          </select>
+          {showAddButton && (
+            <button
+              type="button"
+              onClick={() => openAddModal(name)}
+              className="bg-gray-100 px-3 rounded-r-lg border border-l-0 border-gray-300 hover:bg-gray-200 transition-all"
+              disabled={loading || addingOptions[name]}
+            >
+              +
+            </button>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // Render checkbox field
   const renderCheckbox = (name, label) => (
@@ -302,7 +343,7 @@ const CustomerForm = ({
                 Basic Information
               </h3>
 
-              {renderInput('referenceId', 'REFERENCE ID', 'text', true)}
+              {renderInput('siteId', 'SITE ID', 'text', true)}
               {renderInput('jobNo', 'JOB NO')}
               {renderInput('siteName', 'SITE NAME', 'text', true)}
               {renderTextarea('siteAddress', 'SITE ADDRESS')}
@@ -323,9 +364,9 @@ const CustomerForm = ({
               {renderInput('mobile', 'MOBILE (SMS NOTIFICATION)', 'tel')}
               {renderInput('pinCode', 'PIN CODE')}
               {renderInput('country', 'COUNTRY')}
-              {renderSelectWithAdd('state', 'STATE', dropdownOptions.stateOptions)}
-              {renderSelectWithAdd('city', 'CITY', dropdownOptions.cityOptions)}
-              {renderSelectWithAdd('sector', 'SECTOR', dropdownOptions.sectorOptions)}
+              {renderSelectWithAdd('state', 'STATE', dropdownOptions.stateOptions, true)}
+              {renderInput('city', 'CITY')}
+              {renderSelectWithAdd('sector', 'SECTOR', dropdownOptions.sectorOptions, false, false)}
               {renderSelectWithAdd('routes', 'ROUTE', dropdownOptions.routesOptions)}
               {renderSelectWithAdd('branch', 'BRANCH', dropdownOptions.branchOptions)}
               {renderInput('gstNumber', 'GST NUMBER')}
@@ -346,7 +387,10 @@ const CustomerForm = ({
             Cancel
           </button>
           <button
-            onClick={handleSubmit}
+            onClick={() => {
+              console.log('Create Customer button clicked');
+              handleSubmit();
+            }}
             className={`px-6 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg text-white font-medium hover:from-orange-600 hover:to-orange-700 transition-all shadow-md ${
               loading ? 'opacity-70 cursor-not-allowed' : ''
             }`}
@@ -370,7 +414,7 @@ const CustomerForm = ({
       {/* Modals for adding new options */}
       {Object.entries(modalState).map(([field, { isOpen, value }]) => (
         isOpen && (
-          <div key={field} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div key={`modal-${field}`} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">
                 Add New {field.charAt(0).toUpperCase() + field.slice(1)}
@@ -399,7 +443,7 @@ const CustomerForm = ({
                   className={`px-6 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg text-white font-medium hover:from-orange-600 hover:to-orange-700 transition-all ${
                     loading ? 'opacity-70 cursor-not-allowed' : ''
                   }`}
-                  disabled={loading}
+                  disabled={loading || addingOptions[field]}
                 >
                   {loading ? 'Adding...' : 'Add'}
                 </button>

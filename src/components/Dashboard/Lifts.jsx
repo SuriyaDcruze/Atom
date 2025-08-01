@@ -710,7 +710,7 @@ const Lifts = () => {
                     className="text-blue-500 hover:text-blue-700 p-1"
                     title="Edit"
                   >
-                    <Edit principalement className="w-5 h-5" />
+                    <Edit  className="w-5 h-5" />
                   </button>
                   <button
                     onClick={() => handleDeleteLift(lift.id)}
