@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import AMCForm from '../Dashboard/Forms/AMCform';
 import { Edit, Trash2, Search, ChevronDown, MoreVertical, Download, Upload, Import } from 'lucide-react';
 
-const apiBaseUrl = import.meta.env.VITE_BASE_API;
+const apiBaseUrl = import.meta.env.VITE_BASE_API; // Base URL without /amc
 
 // Static invoice frequency options from Django model
 const invoiceFrequencyOptionsStatic = [
@@ -35,7 +35,7 @@ const AMC = () => {
 
   // State for dropdown options
   const [customerOptions, setCustomerOptions] = useState([]);
-  const [invoiceFrequencyOptions] = useState(invoiceFrequencyOptionsStatic.map(option => option.label));
+  const [invoiceFrequencyOptions] = useState(invoiceFrequencyOptionsStatic.map(option => option.value)); // Use 'value' for consistency
   const [amcTypeOptions, setAmcTypeOptions] = useState([]);
   const [paymentTermsOptions, setPaymentTermsOptions] = useState([]);
   const [statusOptions, setStatusOptions] = useState(['Active', 'Expired', 'Renew In Progress']);
@@ -49,17 +49,34 @@ const AMC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 7;
 
-  // Fetch data with optimized retry logic
+  // Centralized Axios instance with Bearer token
+  const createAxiosInstance = () => {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      toast.error('Please log in to continue.');
+      window.location.href = '/login';
+      return null;
+    }
+    return axios.create({
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  };
+
+  // Fetch data with retry logic for network errors
   const fetchData = async (retryCount = 2) => {
     setLoading(true);
+    const axiosInstance = createAxiosInstance();
+    if (!axiosInstance) {
+      setLoading(false);
+      return;
+    }
+
     try {
-      const token = localStorage.getItem('access_token');
-      // Fetch AMC data and dropdown options in parallel
       const [amcResponse, customers, amcTypes, paymentTerms] = await Promise.all([
-        axios.get(`${apiBaseUrl}/amc/amc-list/`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`${apiBaseUrl}/sales/customer-list/`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`${apiBaseUrl}/amc/amc-types/`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`${apiBaseUrl}/amc/payment-terms/`, { headers: { Authorization: `Bearer ${token}` } }),
+        axiosInstance.get(`${apiBaseUrl}/amc/amc-list/`),
+        axiosInstance.get(`${apiBaseUrl}/sales/customer-list/`),
+        axiosInstance.get(`${apiBaseUrl}/amc/amc-types/`),
+        axiosInstance.get(`${apiBaseUrl}/amc/payment-terms/`),
       ]);
 
       const amcDataMapped = amcResponse.data.map(item => ({
@@ -83,25 +100,26 @@ const AMC = () => {
         endDate: item.end_date,
         equipmentNo: item.equipment_no || '-',
         notes: item.notes || '-',
-        isGenerateContractNow: item.is_generate_contract_now || false,
+        isGenerateContractNow: item.is_generate_contract || false,
         noOfServices: item.no_of_services || '',
       }));
 
       setAmcData(amcDataMapped);
       setSelectedAMCs([]);
-      // Store full objects to access id fields
-      setCustomerOptions(customers.data); // Store full customer objects (with id and site_name)
-      setAmcTypeOptions(amcTypes.data); // Store full amc type objects (with id and value)
-      setPaymentTermsOptions(paymentTerms.data); // Store full payment terms objects (with id and value)
-
+      setCustomerOptions(customers.data);
+      setAmcTypeOptions(amcTypes.data);
+      setPaymentTermsOptions(paymentTerms.data);
     } catch (error) {
       console.error('Error fetching data:', error);
-      const errorMessage = error.response?.data?.error || 'Failed to fetch data due to connectivity issues. Please check your network or try again later.';
-      if (retryCount > 0 && error.response?.status !== 503) { // Avoid retries on server unavailable (503)
+      if (error.response?.status === 401) {
+        toast.error('Session expired. Please log in again.');
+        localStorage.removeItem('access_token');
+        window.location.href = '/login';
+      } else if (retryCount > 0 && error.code === 'ERR_NETWORK') {
         console.log(`Retrying fetchData... (${retryCount} attempts left)`);
-        setTimeout(() => fetchData(retryCount - 1), 1000);
+        setTimeout(() => fetchData(retryCount - 1), 2000);
       } else {
-        toast.error(errorMessage);
+        toast.error(error.response?.data?.error || 'Failed to fetch data. Please check your network.');
       }
     } finally {
       setLoading(false);
@@ -117,7 +135,7 @@ const AMC = () => {
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters(prev => ({ ...prev, [name]: value }));
-    setCurrentPage(1); // Reset to first page when filters change
+    setCurrentPage(1);
   };
 
   // Reset all filters
@@ -155,18 +173,24 @@ const AMC = () => {
   // Handle AMC deletion
   const handleDeleteAMC = async (id) => {
     if (window.confirm('Are you sure you want to delete this AMC?')) {
+      const axiosInstance = createAxiosInstance();
+      if (!axiosInstance) return;
+
       try {
-        const token = localStorage.getItem('access_token');
-        await axios.delete(`${apiBaseUrl}/amc/amc-delete/${id}/`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        await axiosInstance.delete(`${apiBaseUrl}/amc/amc-delete/${id}/`);
         setAmcData(prev => prev.filter(amc => amc.id !== id));
         setSelectedAMCs(prev => prev.filter(amcId => amcId !== id));
-        setCurrentPage(1); // Reset to first page after deletion
+        setCurrentPage(1);
         toast.success('AMC deleted successfully.');
       } catch (error) {
-        console.error('Error deleting AMC:', error.response?.data || error);
-        toast.error(error.response?.data?.error || 'Failed to delete AMC.');
+        console.error('Error deleting AMC:', error);
+        if (error.response?.status === 401) {
+          toast.error('Session expired. Please log in again.');
+          localStorage.removeItem('access_token');
+          window.location.href = '/login';
+        } else {
+          toast.error(error.response?.data?.error || 'Failed to delete AMC.');
+        }
       }
     }
   };
@@ -179,13 +203,13 @@ const AMC = () => {
     }
 
     if (window.confirm(`Are you sure you want to delete ${selectedAMCs.length} selected AMCs?`)) {
+      const axiosInstance = createAxiosInstance();
+      if (!axiosInstance) return;
+
       try {
-        const token = localStorage.getItem('access_token');
         await Promise.all(
           selectedAMCs.map(id =>
-            axios.delete(`${apiBaseUrl}/amc/amc-delete/${id}/`, {
-              headers: { Authorization: `Bearer ${token}` },
-            })
+            axiosInstance.delete(`${apiBaseUrl}/amc/amc-delete/${id}/`)
           )
         );
         setAmcData(prev => prev.filter(amc => !selectedAMCs.includes(amc.id)));
@@ -193,18 +217,25 @@ const AMC = () => {
         toast.success(`${selectedAMCs.length} AMCs deleted successfully.`);
       } catch (error) {
         console.error('Error deleting AMCs:', error);
-        toast.error(error.response?.data?.error || 'Failed to delete selected AMCs.');
+        if (error.response?.status === 401) {
+          toast.error('Session expired. Please log in again.');
+          localStorage.removeItem('access_token');
+          window.location.href = '/login';
+        } else {
+          toast.error(error.response?.data?.error || 'Failed to delete selected AMCs.');
+        }
       }
     }
   };
 
   // Handle export to Excel
   const handleExport = async () => {
+    const axiosInstance = createAxiosInstance();
+    if (!axiosInstance) return;
+
     try {
-      const token = localStorage.getItem('access_token');
-      const response = await axios.get(`${apiBaseUrl}/amc/export-amcs/`, {
-        headers: { Authorization: `Bearer ${token}` },
-        responseType: 'blob', // Important for handling binary data
+      const response = await axiosInstance.get(`${apiBaseUrl}/amc/export-amc-excel/`, {
+        responseType: 'blob',
       });
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -220,7 +251,13 @@ const AMC = () => {
       document.getElementById('options-dropdown').classList.add('hidden');
     } catch (error) {
       console.error('Error exporting AMCs:', error);
-      toast.error(error.response?.data?.error || 'Failed to export AMCs.');
+      if (error.response?.status === 401) {
+        toast.error('Session expired. Please log in again.');
+        localStorage.removeItem('access_token');
+        window.location.href = '/login';
+      } else {
+        toast.error(error.response?.data?.error || 'Failed to export AMCs.');
+      }
       document.getElementById('options-dropdown').classList.add('hidden');
     }
   };
@@ -452,7 +489,7 @@ const AMC = () => {
             >
               <option value="ALL">All Frequencies</option>
               {invoiceFrequencyOptions.map((option) => (
-                <option key={option} value={option}>{option}</option>
+                <option key={option} value={option}>{invoiceFrequencyOptionsStatic.find(opt => opt.value === option)?.label || option}</option>
               ))}
             </select>
           </div>
@@ -754,7 +791,7 @@ const AMC = () => {
             setCurrentAMC(null);
           }}
           onSubmitSuccess={(message) => {
-            fetchData(); // Refresh the data
+            fetchData();
             toast.success(message || (isEditModalOpen ? 'AMC updated successfully!' : 'AMC created successfully!'), {
               position: "top-right",
               autoClose: 3000,
@@ -776,12 +813,12 @@ const AMC = () => {
           }}
           apiBaseUrl={apiBaseUrl}
           dropdownOptions={{
-            customerOptions: customerOptions.map(item => item.site_name), // Pass only site_name for AMCForm
+            customerOptions: customerOptions.map(item => item.site_name),
             invoiceFrequencyOptions,
-            amcTypeOptions: amcTypeOptions.map(item => item.value), // Pass only value for AMCForm
-            paymentTermsOptions: paymentTermsOptions.map(item => item.value), // Pass only value for AMCForm
+            amcTypeOptions: amcTypeOptions.map(item => item.value),
+            paymentTermsOptions: paymentTermsOptions.map(item => item.value),
             setCustomerOptions,
-            setInvoiceFrequencyOptions: () => {}, // No-op since invoice frequencies are static
+            setInvoiceFrequencyOptions: () => {},
             setAmcTypeOptions,
             setPaymentTermsOptions,
           }}

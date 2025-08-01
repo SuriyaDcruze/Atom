@@ -26,8 +26,18 @@ const AMCForm = ({
     isGenerateContractNow: false,
     noOfServices: '',
     files: null,
+    amcServiceItem: '',
+    price: '',
+    no_of_lifts: '',
+    gst_percentage: '',
+    total: '',
     ...initialData,
   });
+
+  // State for existing options
+  const [existingAmcTypes, setExistingAmcTypes] = useState([]);
+  const [existingPaymentTerms, setExistingPaymentTerms] = useState([]);
+  const [amcServiceItems, setAmcServiceItems] = useState([]);
 
   // Modal state for adding/editing/deleting dropdown options
   const [modalState, setModalState] = useState({
@@ -35,27 +45,40 @@ const AMCForm = ({
     paymentTerms: { isOpen: false, value: '', isEditing: false, editId: null },
   });
 
-  // State for existing options
-  const [existingAmcTypes, setExistingAmcTypes] = useState([]);
-  const [existingPaymentTerms, setExistingPaymentTerms] = useState([]);
+  // Centralized Axios instance with Bearer token
+  const createAxiosInstance = () => {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      toast.error('Please log in to continue.');
+      window.location.href = '/login';
+      return null;
+    }
+    return axios.create({
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  };
 
-  // Fetch existing AMC Types and Payment Terms
-  const fetchOptions = async (field) => {
+  // Fetch existing AMC Types, Payment Terms, and Service Items
+  const fetchOptions = async (field, retryCount = 2) => {
+    const axiosInstance = createAxiosInstance();
+    if (!axiosInstance) return;
+
     try {
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        toast.error('Please log in to continue.');
-        window.location.href = '/login';
-        return;
-      }
-      const endpoint = field === 'amcType' ? 'amc-types' : 'payment-terms';
-      const response = await axios.get(`${apiBaseUrl}/amc/${endpoint}/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const endpoints = {
+        amcType: 'amc/amc-types',
+        paymentTerms: 'amc/payment-terms',
+        amcServiceItem: 'auth/item-list',
+      };
+      const endpoint = endpoints[field];
+      const response = await axiosInstance.get(`${apiBaseUrl}/${endpoint}/`);
       if (field === 'amcType') {
         setExistingAmcTypes(response.data);
-      } else {
+        dropdownOptions.setAmcTypeOptions(response.data.map(item => item.name));
+      } else if (field === 'paymentTerms') {
         setExistingPaymentTerms(response.data);
+        dropdownOptions.setPaymentTermsOptions(response.data.map(item => item.name));
+      } else if (field === 'amcServiceItem') {
+        setAmcServiceItems(response.data);
       }
     } catch (error) {
       console.error(`Error fetching ${field}:`, error);
@@ -63,6 +86,9 @@ const AMCForm = ({
         toast.error('Session expired. Please log in again.');
         localStorage.removeItem('access_token');
         window.location.href = '/login';
+      } else if (retryCount > 0 && error.code === 'ERR_NETWORK') {
+        console.log(`Retrying fetchOptions for ${field}... (${retryCount} attempts left)`);
+        setTimeout(() => fetchOptions(field, retryCount - 1), 2000);
       } else {
         toast.error(`Failed to fetch ${field.replace(/([A-Z])/g, ' $1').toLowerCase().trim()}.`);
       }
@@ -73,6 +99,7 @@ const AMCForm = ({
   useEffect(() => {
     fetchOptions('amcType');
     fetchOptions('paymentTerms');
+    fetchOptions('amcServiceItem');
   }, []);
 
   // Handle form input changes
@@ -82,7 +109,7 @@ const AMCForm = ({
       setNewAMC((prev) => ({ ...prev, [name]: checked }));
     } else if (type === 'file') {
       const file = files[0];
-      if (file && file.size > 1024 * 1024) { // 1 MB limit
+      if (file && file.size > 1024 * 1024) {
         toast.error('File size exceeds 1 MB limit.');
         return;
       }
@@ -116,63 +143,48 @@ const AMCForm = ({
       return;
     }
 
+    const axiosInstance = createAxiosInstance();
+    if (!axiosInstance) return;
+
     try {
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        toast.error('Please log in to continue.');
-        window.location.href = '/login';
-        return;
-      }
       const apiEndpoints = {
-        amcType: 'amc-types',
-        paymentTerms: 'payment-terms',
+        amcType: 'amc-types/edit',
+        paymentTerms: 'payment-terms/edit',
+      };
+      const addEndpoints = {
+        amcType: 'amc-types/add',
+        paymentTerms: 'payment-terms/add',
       };
       const isEditing = modalState[field].isEditing;
       const editId = modalState[field].editId;
 
       if (isEditing) {
-        // Edit existing option
-        await axios.put(
+        await axiosInstance.put(
           `${apiBaseUrl}/amc/${apiEndpoints[field]}/${editId}/`,
-          { name: value },
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
+          { name: value }
         );
         toast.success(`${field.replace(/([A-Z])/g, ' $1').trim()} updated successfully.`);
       } else {
-        // Add new option
-        await axios.post(
-          `${apiBaseUrl}/amc/${apiEndpoints[field]}/add/`,
-          { name: value },
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
+        await axiosInstance.post(
+          `${apiBaseUrl}/amc/${addEndpoints[field]}/`,
+          { name: value }
         );
         setNewAMC((prev) => ({ ...prev, [field]: value }));
         toast.success(`${field.replace(/([A-Z])/g, ' $1').trim()} added successfully.`);
       }
 
-      // Refresh options
       fetchOptions(field);
-      dropdownOptions[`set${field.charAt(0).toUpperCase() + field.slice(1)}Options`](
-        [...(field === 'amcType' ? existingAmcTypes : existingPaymentTerms)
-          .filter(item => !isEditing || item.id !== editId)
-          .map(item => item.name), isEditing ? value : value]
-      );
       closeAddModal(field);
       onSubmitSuccess();
     } catch (error) {
-      console.error(`Error ${isEditing ? 'editing' : 'adding'} ${field}:`, error.response?.data || error);
+      console.error(`Error ${isEditing ? 'editing' : 'adding'} ${field}:`, error);
       if (error.response?.status === 401) {
         toast.error('Session expired. Please log in again.');
         localStorage.removeItem('access_token');
         window.location.href = '/login';
       } else {
-        toast.error(
-          error.response?.data?.error ||
-          `Failed to ${isEditing ? 'update' : 'add'} ${field.replace(/([A-Z])/g, ' $1').toLowerCase().trim()}.`
-        );
+        const errorMsg = error.response?.data?.name?.[0] || error.response?.data?.error || `Failed to ${isEditing ? 'update' : 'add'} ${field.replace(/([A-Z])/g, ' $1').toLowerCase().trim()}.`;
+        toast.error(errorMsg);
       }
     }
   };
@@ -183,32 +195,19 @@ const AMCForm = ({
       return;
     }
 
+    const axiosInstance = createAxiosInstance();
+    if (!axiosInstance) return;
+
     try {
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        toast.error('Please log in to continue.');
-        window.location.href = '/login';
-        return;
-      }
-      const apiEndpoints = {
-        amcType: 'amc-types',
-        paymentTerms: 'payment-terms',
+      const deleteEndpoints = {
+        amcType: 'amc-types/delete',
+        paymentTerms: 'payment-terms/delete',
       };
-      await axios.delete(
-        `${apiBaseUrl}/amc/${apiEndpoints[field]}/${id}/`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      await axiosInstance.delete(`${apiBaseUrl}/amc/${deleteEndpoints[field]}/${id}/`);
       toast.success(`${field.replace(/([A-Z])/g, ' $1').trim()} deleted successfully.`);
       fetchOptions(field);
-      dropdownOptions[`set${field.charAt(0).toUpperCase() + field.slice(1)}Options`](
-        (field === 'amcType' ? existingAmcTypes : existingPaymentTerms)
-          .filter(item => item.id !== id)
-          .map(item => item.name)
-      );
     } catch (error) {
-      console.error(`Error deleting ${field}:`, error.response?.data || error);
+      console.error(`Error deleting ${field}:`, error);
       if (error.response?.status === 401) {
         toast.error('Session expired. Please log in again.');
         localStorage.removeItem('access_token');
@@ -232,27 +231,16 @@ const AMCForm = ({
       return;
     }
 
+    const axiosInstance = createAxiosInstance();
+    if (!axiosInstance) return;
+
     try {
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        toast.error('Please log in to continue.');
-        window.location.href = '/login';
-        return;
-      }
-      // Fetch reference data to map values to IDs
       const [customers, amcTypes, paymentTerms] = await Promise.all([
-        axios.get(`${apiBaseUrl}/sales/customer-list/`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        axios.get(`${apiBaseUrl}/amc/amc-types/`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        axios.get(`${apiBaseUrl}/amc/payment-terms/`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
+        axiosInstance.get(`${apiBaseUrl}/sales/customer-list/`),
+        axiosInstance.get(`${apiBaseUrl}/amc/amc-types/`),
+        axiosInstance.get(`${apiBaseUrl}/amc/payment-terms/`),
       ]);
 
-      // Prepare form data for API
       const formData = new FormData();
       formData.append('customer', customers.data.find(c => c.site_name === newAMC.customer)?.id || null);
       formData.append('reference_id', newAMC.referenceId);
@@ -264,44 +252,39 @@ const AMCForm = ({
       formData.append('end_date', newAMC.endDate);
       formData.append('equipment_no', newAMC.equipmentNo);
       formData.append('notes', newAMC.notes);
-      formData.append('is_generate_contract_now', newAMC.isGenerateContractNow);
+      formData.append('is_generate_contract', newAMC.isGenerateContractNow);
       formData.append('no_of_services', newAMC.noOfServices);
+      formData.append('amc_service_item', newAMC.amcServiceItem);
       if (newAMC.files) {
-        formData.append('files', newAMC.files);
+        formData.append('uploads_files', newAMC.files);
+      }
+      if (newAMC.isGenerateContractNow) {
+        formData.append('price', newAMC.price || 0);
+        formData.append('no_of_lifts', newAMC.no_of_lifts || 0);
+        formData.append('gst_percentage', newAMC.gst_percentage || 0);
+        formData.append('total', newAMC.total || 0);
       }
 
-      // Make API call based on edit or create mode
       if (isEdit) {
-        await axios.put(
+        await axiosInstance.put(
           `${apiBaseUrl}/amc/amc-update/${initialData.id}/`,
           formData,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'multipart/form-data',
-            },
-          }
+          { headers: { 'Content-Type': 'multipart/form-data' } }
         );
         toast.success('AMC updated successfully.');
       } else {
-        await axios.post(
+        await axiosInstance.post(
           `${apiBaseUrl}/amc/amc-add/`,
           formData,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'multipart/form-data',
-            },
-          }
+          { headers: { 'Content-Type': 'multipart/form-data' } }
         );
         toast.success('AMC created successfully.');
       }
 
-      // Notify parent component of successful submission
       onSubmitSuccess();
       onClose();
     } catch (error) {
-      console.error(`Error ${isEdit ? 'editing' : 'creating'} AMC:`, error.response?.data || error);
+      console.error(`Error ${isEdit ? 'editing' : 'creating'} AMC:`, error);
       if (error.response?.status === 401) {
         toast.error('Session expired. Please log in again.');
         localStorage.removeItem('access_token');
@@ -570,6 +553,79 @@ const AMCForm = ({
                   className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
                 />
               </div>
+
+              {/* Conditional Fields */}
+              {newAMC.isGenerateContractNow && (
+                <div className="space-y-4">
+                  <div className="form-group">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Select AMC Service Item
+                    </label>
+                    <select
+                      name="amcServiceItem"
+                      value={newAMC.amcServiceItem}
+                      onChange={handleInputChange}
+                      className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 appearance-none bg-white"
+                    >
+                      <option value="">Select Item</option>
+                      {amcServiceItems.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Price
+                    </label>
+                    <input
+                      type="number"
+                      name="price"
+                      value={newAMC.price || ''}
+                      onChange={handleInputChange}
+                      className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      No of Lifts
+                    </label>
+                    <input
+                      type="number"
+                      name="no_of_lifts"
+                      value={newAMC.no_of_lifts || ''}
+                      onChange={handleInputChange}
+                      className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      % GST
+                    </label>
+                    <input
+                      type="number"
+                      name="gst_percentage"
+                      value={newAMC.gst_percentage || ''}
+                      onChange={handleInputChange}
+                      className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Total
+                    </label>
+                    <input
+                      type="number"
+                      name="total"
+                      value={newAMC.total || ''}
+                      onChange={handleInputChange}
+                      className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
+                      readOnly
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -664,7 +720,8 @@ const AMCForm = ({
                 </button>
                 <button
                   onClick={() => handleAddOption(field)}
-                  className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg text-white font-medium hover:from-blue-600 hover:to-blue-700 transition-all duration-200"
+                  disabled={!value.trim()}
+                  className={`px-6 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg text-white font-medium transition-all duration-200 ${!value.trim() ? 'opacity-50 cursor-not-allowed' : 'hover:from-blue-600 hover:to-blue-700'}`}
                 >
                   {isEditing ? `Update ${field.replace(/([A-Z])/g, ' $1').trim()}` : `Add ${field.replace(/([A-Z])/g, ' $1').trim()}`}
                 </button>
